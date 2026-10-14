@@ -1,0 +1,12 @@
+# Compilados de Java
+bin/
+*.class
+
+# Entornos y editores
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Logs temporales
+*.log
