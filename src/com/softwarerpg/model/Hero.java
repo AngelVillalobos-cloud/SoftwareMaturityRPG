@@ -40,8 +40,8 @@ public class Hero {
 
     public void addXp(int amount) {
         this.xp += amount;
-        // Subida de nivel PSP
-        if (pspLevel.getNext() != pspLevel && xp >= pspLevel.getNext().getXpRequired()) {
+        // Subida de nivel PSP (puede subir varios niveles con una recompensa grande)
+        while (pspLevel.getNext() != pspLevel && xp >= pspLevel.getNext().getXpRequired()) {
             pspLevel = pspLevel.getNext();
             maxHp += 20;
             maxMp += 15;
@@ -49,8 +49,7 @@ public class Hero {
             mp = maxMp;
         }
         // Subida de nivel general del héroe
-        int nextLevelThreshold = level * 150;
-        if (xp >= nextLevelThreshold) {
+        while (xp >= level * 150) {
             level++;
             maxHp += 25;
             maxMp += 20;

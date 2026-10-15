@@ -68,7 +68,6 @@ public class BattleEngine {
      */
     public void actionWriteCode() {
         if (battleOver) return;
-        turnCount++;
         int baseDamage = 22 + hero.getLevel() * 5;
         if (enemyDefenseWeakened) {
             baseDamage = (int)(baseDamage * 1.4);
@@ -99,7 +98,6 @@ public class BattleEngine {
      */
     public void actionInspectCode() {
         if (battleOver) return;
-        turnCount++;
 
         if (hero.getChecklists() <= 0) {
             listener.onBattleLog("❌ No tienes Listas de Chequeo (Checklists PSP) disponibles. Adquiere más en la organización.");
@@ -129,7 +127,6 @@ public class BattleEngine {
      */
     public void actionEstimateSize() {
         if (battleOver) return;
-        turnCount++;
 
         if (!hero.consumeMp(15)) {
             listener.onBattleLog("❌ No tienes suficiente energía de disciplina (Requiere 15 MP).");
@@ -159,7 +156,6 @@ public class BattleEngine {
      */
     public void actionTeamSynergy(TSPRole role) {
         if (battleOver) return;
-        turnCount++;
 
         if (!hero.consumeMp(20)) {
             listener.onBattleLog("❌ Requiere 20 MP de esfuerzo disciplinado para coordinar con el equipo.");
@@ -208,7 +204,6 @@ public class BattleEngine {
      */
     public void actionStatisticalControl() {
         if (battleOver) return;
-        turnCount++;
 
         if (hero.getCmmiLevel().getLevelNumber() < 4) {
             listener.onBattleLog("🔒 Requiere Nivel CMMI 4 (Cuantitativamente Gestionado) para usar Control Estadístico.");
@@ -237,7 +232,6 @@ public class BattleEngine {
      */
     public void actionContinuousImprovement() {
         if (battleOver) return;
-        turnCount++;
 
         if (hero.getCmmiLevel().getLevelNumber() < 5) {
             listener.onBattleLog("🔒 Requiere Nivel CMMI 5 (Optimización) para desplegar innovación y mejora continua.");
@@ -287,8 +281,12 @@ public class BattleEngine {
         checkBattleStatus();
     }
 
-    /** Registra en la bitácora de tiempos la actividad PSP del turno, con una interrupción de 0 a 3 min. */
+    /**
+     * Registra en la bitácora de tiempos la actividad PSP del turno (interrupción de 0 a 3 min)
+     * y cuenta el turno. Cada acción exitosa lo llama exactamente una vez.
+     */
     private void logTime(String phase, int minutes, String comment) {
+        turnCount++; // solo las acciones que sí se ejecutan cuentan como turno
         pspLog.logActivity(phase, minutes, random.nextInt(4), comment, false);
     }
 
