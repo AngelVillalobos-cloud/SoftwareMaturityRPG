@@ -43,7 +43,7 @@ public class GameEngine {
     public void startMission(Mission mission, BattleEngine.BattleListener listener) {
         this.activeMission = mission;
         mission.getBossEnemy().resetHp();
-        this.pspLog.resetForNewProject(mission.getEstimatedLoc(), mission.getEstimatedMinutes());
+        this.pspLog.resetForNewProject(mission.getTitle(), mission.getEstimatedLoc(), mission.getEstimatedMinutes());
 
         this.currentBattle = new BattleEngine(
             hero, mission.getBossEnemy(), pspLog, org, team,
@@ -76,7 +76,7 @@ public class GameEngine {
         Enemy enemy = GameData.createRandomBug(stage);
         this.activeMission = null;
         // Cada caza rápida es un proyecto pequeño con su propio tamaño estimado
-        this.pspLog.resetForNewProject(30 + stage * 30, 30 + stage * 20);
+        this.pspLog.resetForNewProject("Caza rápida: " + enemy.getName(), 30 + stage * 30, 30 + stage * 20);
         this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener);
     }
 

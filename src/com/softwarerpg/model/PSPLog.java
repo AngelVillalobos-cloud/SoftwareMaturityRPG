@@ -15,6 +15,8 @@ import java.util.Map;
 public class PSPLog {
     private final List<TimeLogEntry> timeLogs = new ArrayList<>();
     private final List<DefectLogEntry> defectLogs = new ArrayList<>();
+    private final List<ProjectSummary> history = new ArrayList<>();
+    private String projectName = "Proyecto";
     private int nextDefectId = 1;
 
     public static final String PENDING_PHASE = "Pendiente";
@@ -164,7 +166,31 @@ public class PSPLog {
     public int getEstimatedMinutes() { return estimatedMinutes; }
     public void setEstimatedMinutes(int estimatedMinutes) { this.estimatedMinutes = estimatedMinutes; }
 
+    public List<ProjectSummary> getHistory() {
+        return Collections.unmodifiableList(history);
+    }
+
+    public String getProjectName() { return projectName; }
+
+    /** Cierra el proyecto actual y archiva su resumen Post-Mortem en el historial. */
+    public ProjectSummary closeProject(boolean delivered) {
+        ProjectSummary summary = new ProjectSummary(projectName, delivered, estimatedLOC, actualLOC,
+                estimatedMinutes, getTotalTimeMinutes(), getTotalDefects(), getPendingDefects(),
+                calculateDefectDensity(), calculateYield());
+        history.add(summary);
+        return summary;
+    }
+
+    /** Inicia un proyecto nuevo: las bitácoras de tiempos y defectos empiezan vacías. */
+    public void resetForNewProject(String projectName, int estimatedLOC, int estimatedMins) {
+        this.projectName = projectName;
+        resetForNewProject(estimatedLOC, estimatedMins);
+    }
+
     public void resetForNewProject(int estimatedLOC, int estimatedMins) {
+        this.timeLogs.clear();
+        this.defectLogs.clear();
+        this.nextDefectId = 1;
         this.estimatedLOC = estimatedLOC;
         this.actualLOC = 0;
         this.finalLOC = estimatedLOC;

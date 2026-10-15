@@ -2,6 +2,7 @@ package com.softwarerpg.ui;
 
 import com.softwarerpg.engine.GameEngine;
 import com.softwarerpg.model.DefectLogEntry;
+import com.softwarerpg.model.ProjectSummary;
 import com.softwarerpg.model.TimeLogEntry;
 
 import javax.swing.*;
@@ -27,6 +28,8 @@ public class PSPLogPanel extends JPanel {
 
     private JTable defectTable;
     private DefaultTableModel defectTableModel;
+
+    private DefaultTableModel historyTableModel;
 
     private JLabel lblTotalTime;
     private JLabel lblTotalDefects;
@@ -93,8 +96,21 @@ public class PSPLogPanel extends JPanel {
         JScrollPane defectScroll = new JScrollPane(defectTable);
         defectScroll.getViewport().setBackground(Theme.PANEL_BG);
 
+        // 3. Historial de proyectos (resúmenes Post-Mortem)
+        String[] historyCols = {"Proyecto", "Resultado", "LOC Est.", "LOC Real", "Error Tamaño", "Min Est.", "Min Real", "Defectos", "Dd", "Yield"};
+        historyTableModel = new DefaultTableModel(historyCols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        JTable historyTable = createStyledTable(historyTableModel);
+        historyTable.getColumnModel().getColumn(0).setPreferredWidth(280);
+        historyTable.getColumnModel().getColumn(1).setPreferredWidth(110);
+        JScrollPane historyScroll = new JScrollPane(historyTable);
+        historyScroll.getViewport().setBackground(Theme.PANEL_BG);
+
         logsTabPane.addTab("⏱️ Bitácora de Tiempos (PSP)", timeScroll);
         logsTabPane.addTab("🐞 Bitácora de Defectos (Tipos 10-100)", defectScroll);
+        logsTabPane.addTab("📚 Historial de Proyectos", historyScroll);
 
         add(logsTabPane, BorderLayout.CENTER);
 
@@ -165,6 +181,21 @@ public class PSPLogPanel extends JPanel {
                 d.getFixTimeMinutes(),
                 d.isFixed() ? "Sí" : "No",
                 d.getDescription()
+            });
+        }
+
+        updateHistory();
+    }
+
+    private void updateHistory() {
+        historyTableModel.setRowCount(0);
+        for (ProjectSummary p : gameEngine.getPspLog().getHistory()) {
+            historyTableModel.addRow(new Object[]{
+                p.getProjectName(), p.isDelivered() ? "✅ Entregado" : "❌ Fallido",
+                p.getEstimatedLOC(), p.getActualLOC(), String.format("%+.0f%%", p.getSizeErrorPercent()),
+                p.getEstimatedMinutes(), p.getActualMinutes(),
+                p.getTotalDefects() + (p.getPendingDefects() > 0 ? " (" + p.getPendingDefects() + " pend.)" : ""),
+                String.format("%.1f", p.getDefectDensity()), String.format("%.0f%%", p.getYield())
             });
         }
     }

@@ -311,6 +311,7 @@ public class BattleEngine {
             org.addProcessPoints(30);
 
             pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto entregado: consolidación de métricas", true);
+            pspLog.closeProject(true);
             listener.onBattleLog(String.format("📏 Post-Mortem: tamaño estimado %d LOC vs real %d LOC (error %+.0f%%); tiempo estimado %d min vs real %d min.",
                     pspLog.getEstimatedLOC(), pspLog.getActualLOC(), pspLog.getSizeEstimationErrorPercent(),
                     pspLog.getEstimatedMinutes(), pspLog.getTotalTimeMinutes()));
@@ -319,6 +320,7 @@ public class BattleEngine {
         } else if (hero.getHp() <= 0) {
             battleOver = true;
             pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto fallido: análisis de causas", true);
+            pspLog.closeProject(false);
             listener.onBattleLog("💀 DERROTA: El proyecto ha colapsado ante la acumulación de defectos.");
             listener.onBattleLog("⚠️ Revisa tus bitácoras de tiempos y defectos en la pestaña PSP para identificar las fallas.");
             listener.onBattleEnded(false);
