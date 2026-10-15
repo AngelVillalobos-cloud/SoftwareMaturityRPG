@@ -3,6 +3,7 @@ package com.softwarerpg.ui;
 import com.softwarerpg.engine.BattleEngine;
 import com.softwarerpg.engine.GameEngine;
 import com.softwarerpg.model.Hero;
+import com.softwarerpg.model.Mission;
 import com.softwarerpg.model.Enemy;
 import com.softwarerpg.model.TSPRole;
 
@@ -26,6 +27,9 @@ public class BattlePanel extends JPanel {
     private JLabel enemySubtitleLabel;
     private JProgressBar enemyHpBar;
     private JLabel enemyQuoteLabel;
+
+    private CharacterSprite heroSprite;
+    private CharacterSprite clientSprite;
 
     private JTextArea battleLogArea;
     private JScrollPane logScrollPane;
@@ -83,9 +87,11 @@ public class BattlePanel extends JPanel {
         heroContent.add(heroHpBar);
         heroContent.add(heroAuxLabel);
         heroCard.add(heroContent, BorderLayout.CENTER);
+        heroSprite = new CharacterSprite(CharacterSprite.Kind.ENGINEER);
+        heroCard.add(heroSprite, BorderLayout.WEST);
 
         // Tarjeta Enemigo / Bug
-        JPanel enemyCard = Theme.createCard("👾 Defecto / Amenaza");
+        JPanel enemyCard = Theme.createCard("👾 Defecto / Amenaza  vs  😠 Cliente");
         JPanel enemyContent = new JPanel(new GridLayout(4, 1, 4, 4));
         enemyContent.setOpaque(false);
 
@@ -112,6 +118,8 @@ public class BattlePanel extends JPanel {
         enemyContent.add(enemyHpBar);
         enemyContent.add(enemyQuoteLabel);
         enemyCard.add(enemyContent, BorderLayout.CENTER);
+        clientSprite = new CharacterSprite(CharacterSprite.Kind.CLIENT_MAN);
+        enemyCard.add(clientSprite, BorderLayout.EAST);
 
         arenaPanel.add(heroCard);
         arenaPanel.add(enemyCard);
@@ -203,6 +211,37 @@ public class BattlePanel extends JPanel {
         battleLogArea.setCaretPosition(battleLogArea.getDocument().getLength());
     }
 
+    private void updateSprites(Hero hero, BattleEngine battle) {
+        double heroRatio = (double) hero.getHp() / hero.getMaxHp();
+        String heroLine;
+        if (battle == null) heroLine = "¿Siguiente proyecto?";
+        else if (hero.getHp() <= 0) heroLine = "Necesito un respiro...";
+        else if (heroRatio < 0.35) heroLine = "¡Necesito café!";
+        else if (battle.isBattleOver()) heroLine = "¡Entregado!";
+        else heroLine = "¡A programar!";
+        heroSprite.setState(heroRatio, hero.getHp() <= 0, heroLine);
+
+        if (battle == null) {
+            clientSprite.setState(0.4, false, "Esperando propuesta...");
+            clientSprite.setToolTipText(null);
+            return;
+        }
+        Enemy enemy = battle.getEnemy();
+        // Señor o señora según el defecto, de forma estable entre combates
+        clientSprite.setKind((enemy.getName().hashCode() & 1) == 0
+                ? CharacterSprite.Kind.CLIENT_MAN : CharacterSprite.Kind.CLIENT_WOMAN);
+        double anger = (double) enemy.getHp() / enemy.getMaxHp();
+        String clientLine;
+        if (enemy.isDefeated()) clientLine = "¡Excelente entrega!";
+        else if (hero.getHp() <= 0) clientLine = "¡Cancelo el contrato!";
+        else if (anger > 0.66) clientLine = "¡Lo quería para AYER!";
+        else if (anger > 0.33) clientLine = "¿Ya mero queda o qué?";
+        else clientLine = "Mmm... ya se ve mejor.";
+        clientSprite.setState(anger, enemy.isDefeated(), clientLine);
+        Mission mission = gameEngine.getActiveMission();
+        clientSprite.setToolTipText(mission != null ? "Cliente: " + mission.getClient() : "Cliente de caza rápida");
+    }
+
     public void clearLog() {
         battleLogArea.setText("");
     }
@@ -220,6 +259,7 @@ public class BattlePanel extends JPanel {
         heroStatusLabel.setText("Nivel " + hero.getLevel() + " | " + hero.getPspLevel().getTitle() + " | CMMI: " + hero.getCmmiLevel().getName());
 
         BattleEngine battle = gameEngine.getCurrentBattle();
+        updateSprites(hero, battle);
         if (battle != null) {
             Enemy enemy = battle.getEnemy();
             enemyNameLabel.setText(enemy.getName() + " (" + enemy.getAssociatedDefect().getName() + ")");
