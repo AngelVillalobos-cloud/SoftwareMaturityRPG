@@ -9,7 +9,8 @@ import java.awt.*;
  * Enciclopedia y Guía Didáctica interactiva con los conceptos de los 4 PDFs de clase:
  * CMMI, MoProSoft, PSP y TSP.
  */
-public class CodexPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class CodexPanel extends JPanel {
 
     public CodexPanel() {
         setLayout(new BorderLayout(10, 10));
@@ -93,7 +94,7 @@ public class CodexPanel extends JPanel {
                 + "Donde: <b>Dd</b> = Defectos por KLOC, <b>D</b> = Defectos encontrados, <b>N</b> = Líneas de código (LOC) nuevas o modificadas.<br/>"
                 + "<i>Un ingeniero de software experimentado suele introducir entre 50 y 250 defectos/KLOC.</i>"
                 + "</p>"
-                + "<h3>Tipos de Defectos (Clasificación Chillagere / IBM):</h3>"
+                + "<h3>Tipos de Defectos (Clasificación Chillarege / IBM):</h3>"
                 + "<p>10: Documentación | 20: Sintaxis | 30: Construir/Paquetes | 40: Asignación | 50: Interfaz | 60: Chequeo | 70: Datos | 80: Función/Lógica | 90: Sistema | 100: Entorno.</p>";
     }
 

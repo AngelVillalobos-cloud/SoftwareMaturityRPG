@@ -28,7 +28,7 @@ En la pestaña **Org. MoProSoft** gestionas la estructura empresarial en sus **3
 El protagonista sigue la metodología y disciplina del ingeniero individual:
 - **Niveles PSP:** Evolución desde `PSP 0` hasta `PSP 2.1` conforme ganas experiencia.
 - **Bitácora de Tiempos (Time Log):** Registra fecha, inicio, fin, tiempo de interrupción, delta en minutos, actividad y completitud (idéntico a la pág. 17).
-- **Bitácora de Defectos (Defect Log):** Clasifica los bugs con la taxonomía de **Chillagere / IBM** (Tipos 10 Documentación, 20 Sintaxis, 30 Construcción, 40 Asignación, 50 Interfaz, 60 Chequeo, 70 Datos, 80 Función/Lógica, 90 Sistema, 100 Entorno).
+- **Bitácora de Defectos (Defect Log):** Clasifica los bugs con la taxonomía de **Chillarege / IBM** (Tipos 10 Documentación, 20 Sintaxis, 30 Construcción, 40 Asignación, 50 Interfaz, 60 Chequeo, 70 Datos, 80 Función/Lógica, 90 Sistema, 100 Entorno).
 - **Métricas Post-Mortem:** Resumen del proyecto y cálculo en tiempo real de la **Densidad de Defectos**:
   $$Dd = 1000 \times \frac{D}{N}$$
 - **Plan de Mejora Personal (PIP):** Permite registrar propuestas de mejora en el propio proceso personal para recuperar energía y puntos organizacionales.

@@ -1,7 +1,7 @@
 package com.softwarerpg.model;
 
 /**
- * Tipos de defectos según la clasificación de Chillagere e IBM (presente en PSP).
+ * Tipos de defectos según la clasificación de Chillarege e IBM (presente en PSP).
  */
 public enum DefectType {
     DOCUMENTACION(10, "Documentación", "Comentarios, mensajes confusos o desactualizados", 1.0),

@@ -14,7 +14,8 @@ import java.util.List;
  * Gestión de la cuadrilla de ingenieros, asignación de los 5 roles clave,
  * entrenamiento individual en PSP y juntas de seguimiento semanal.
  */
-public class TSPTeamPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class TSPTeamPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
 

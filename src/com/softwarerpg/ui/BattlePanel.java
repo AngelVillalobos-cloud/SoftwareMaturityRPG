@@ -15,7 +15,8 @@ import java.awt.*;
 /**
  * Panel de combate RPG donde el jugador y su equipo se enfrentan a anomalías de software.
  */
-public class BattlePanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class BattlePanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
 
@@ -67,13 +68,13 @@ public class BattlePanel extends JPanel {
         heroStatusLabel.setForeground(Theme.TEXT_PRIMARY);
         heroStatusLabel.setFont(Theme.FONT_BOLD);
 
-        heroHpBar = new JProgressBar(0, gameEngine.getHero().getMaxHp());
+        heroHpBar = Theme.createProgressBar(0, gameEngine.getHero().getMaxHp(), Theme.ACCENT_GREEN);
         heroHpBar.setValue(gameEngine.getHero().getHp());
         heroHpBar.setStringPainted(true);
         heroHpBar.setForeground(Theme.ACCENT_GREEN);
         heroHpBar.setBackground(Theme.PANEL_SECONDARY);
 
-        heroMpBar = new JProgressBar(0, gameEngine.getHero().getMaxMp());
+        heroMpBar = Theme.createProgressBar(0, gameEngine.getHero().getMaxMp(), Theme.ACCENT_CYAN);
         heroMpBar.setValue(gameEngine.getHero().getMp());
         heroMpBar.setStringPainted(true);
         heroMpBar.setForeground(Theme.ACCENT_CYAN);
@@ -105,7 +106,7 @@ public class BattlePanel extends JPanel {
         enemySubtitleLabel.setForeground(Theme.TEXT_MUTED);
         enemySubtitleLabel.setFont(Theme.FONT_REGULAR);
 
-        enemyHpBar = new JProgressBar(0, 100);
+        enemyHpBar = Theme.createProgressBar(0, 100, Theme.ACCENT_RED);
         enemyHpBar.setValue(0);
         enemyHpBar.setStringPainted(true);
         enemyHpBar.setForeground(Theme.ACCENT_RED);

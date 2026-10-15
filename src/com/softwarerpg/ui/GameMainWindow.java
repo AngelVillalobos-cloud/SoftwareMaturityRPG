@@ -16,7 +16,8 @@ import java.awt.*;
 /**
  * Ventana principal del juego RPG "Software Maturity: The Quest for Level 5".
  */
-public class GameMainWindow extends JFrame {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class GameMainWindow extends JFrame {
     private final GameEngine gameEngine;
 
     // Elementos del Header
@@ -73,13 +74,13 @@ public class GameMainWindow extends JFrame {
         JPanel barsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         barsPanel.setOpaque(false);
 
-        topHpBar = new JProgressBar(0, 100);
+        topHpBar = Theme.createProgressBar(0, 100, Theme.ACCENT_GREEN);
         topHpBar.setPreferredSize(new Dimension(140, 18));
         topHpBar.setStringPainted(true);
         topHpBar.setForeground(Theme.ACCENT_GREEN);
         topHpBar.setBackground(Theme.PANEL_SECONDARY);
 
-        topMpBar = new JProgressBar(0, 60);
+        topMpBar = Theme.createProgressBar(0, 60, Theme.ACCENT_CYAN);
         topMpBar.setPreferredSize(new Dimension(140, 18));
         topMpBar.setStringPainted(true);
         topMpBar.setForeground(Theme.ACCENT_CYAN);

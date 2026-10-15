@@ -5,6 +5,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.plaf.basic.BasicProgressBarUI;
 
 /**
  * Paleta de colores, fuentes y utilidades visuales con estética RPG Cyber/Dev.
@@ -60,6 +61,25 @@ public class Theme {
             }
         });
         return btn;
+    }
+
+    /**
+     * Barra de progreso que respeta los colores del tema. El Look&Feel Nimbus ignora
+     * setForeground en las barras y las pinta naranjas con texto poco legible.
+     */
+    public static JProgressBar createProgressBar(int min, int max, Color fill) {
+        JProgressBar bar = new JProgressBar(min, max);
+        bar.setUI(new BasicProgressBarUI() {
+            @Override protected Color getSelectionBackground() { return TEXT_PRIMARY; } // texto sobre la parte vacía
+            @Override protected Color getSelectionForeground() { return BG_DARK; }      // texto sobre la parte llena
+        });
+        bar.setForeground(fill);
+        bar.setBackground(PANEL_SECONDARY);
+        bar.setOpaque(true);
+        bar.setBorder(new LineBorder(BORDER_COLOR, 1));
+        bar.setFont(FONT_BOLD);
+        bar.setStringPainted(true);
+        return bar;
     }
 
     public static JPanel createCard(String title) {

@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * Entrada de la Bitácora de Registro de Defectos de PSP (Defect Recording Log).
  * Conforme a la diapositiva 12 del PDF de PSP:
- * Fecha, Número, Tipo (código Chillagere), Fase Introducido, Fase Eliminado, Tiempo corrección (min), Descripción.
+ * Fecha, Número, Tipo (código Chillarege), Fase Introducido, Fase Eliminado, Tiempo corrección (min), Descripción.
  */
 public class DefectLogEntry {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

@@ -15,11 +15,12 @@ import java.util.List;
 /**
  * Panel que visualiza las Bitácoras oficiales del PSP (Personal Software Process):
  * 1. Bitácora de Registro de Tiempos (Time Recording Log)
- * 2. Bitácora de Registro de Defectos (Defect Recording Log - Chillagere/IBM)
+ * 2. Bitácora de Registro de Defectos (Defect Recording Log - Chillarege/IBM)
  * 3. Resumen Post-Mortem y cálculo de Densidad de Defectos Dd = 1000 * D / N
  * 4. Registro en el Plan de Mejora Personal (PIP)
  */
-public class PSPLogPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class PSPLogPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
 
@@ -87,7 +88,7 @@ public class PSPLogPanel extends JPanel {
         timeScroll.getViewport().setBackground(Theme.PANEL_BG);
 
         // 2. Bitácora de Defectos (Defect Log)
-        String[] defectCols = {"Fecha", "N°", "Tipo Chillagere", "Fase Inyectado", "Fase Eliminado", "Tiempo Corr. (min)", "¿Corregido?", "Descripción"};
+        String[] defectCols = {"Fecha", "N°", "Tipo Chillarege", "Fase Inyectado", "Fase Eliminado", "Tiempo Corr. (min)", "¿Corregido?", "Descripción"};
         defectTableModel = new DefaultTableModel(defectCols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }

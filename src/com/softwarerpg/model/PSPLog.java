@@ -126,7 +126,7 @@ public class PSPLog {
     }
 
     /**
-     * Resumen de defectos clasificados por tipo (Chillagere / IBM)
+     * Resumen de defectos clasificados por tipo (Chillarege / IBM)
      */
     public Map<DefectType, Integer> getDefectsByType() {
         Map<DefectType, Integer> map = new HashMap<>();

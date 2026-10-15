@@ -12,7 +12,7 @@ import java.awt.geom.*;
  *  - Ingeniero: proporción de salud del proyecto (1 = fresco, 0 = derrotado).
  *  - Cliente: nivel de enojo según la vida restante del defecto (1 = furioso, 0 = satisfecho).
  */
-public class CharacterSprite extends JComponent {
+public final class CharacterSprite extends JComponent {
     private static final long serialVersionUID = 1L;
 
     public enum Kind { ENGINEER, CLIENT_MAN, CLIENT_WOMAN }

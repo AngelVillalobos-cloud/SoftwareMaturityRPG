@@ -15,7 +15,8 @@ import java.util.List;
  * Permite desplegar proyectos organizados por niveles de madurez CMMI
  * y acceder a la tienda de artefactos PSP.
  */
-public class MissionsPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class MissionsPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
     private final java.util.function.Consumer<Integer> tabSwitcher;

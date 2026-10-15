@@ -12,7 +12,17 @@ import java.nio.file.Path;
  */
 public class Main {
     public static void main(String[] args) {
-        // Establecer Look & Feel
+        SwingUtilities.invokeLater(() -> {
+            installLookAndFeel();
+            GameEngine engine = askContinueSavedGame();
+            if (engine == null) engine = askNewGame();
+            GameMainWindow window = new GameMainWindow(engine);
+            window.setVisible(true);
+        });
+    }
+
+    /** Look & Feel Nimbus si está disponible (se configura en el hilo de eventos de Swing). */
+    private static void installLookAndFeel() {
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -25,13 +35,6 @@ public class Main {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored2) {}
         }
-
-        SwingUtilities.invokeLater(() -> {
-            GameEngine engine = askContinueSavedGame();
-            if (engine == null) engine = askNewGame();
-            GameMainWindow window = new GameMainWindow(engine);
-            window.setVisible(true);
-        });
     }
 
     /** Si hay una partida guardada, ofrece continuarla. Devuelve null para empezar una nueva. */

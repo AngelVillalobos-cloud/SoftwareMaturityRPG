@@ -14,7 +14,8 @@ import java.awt.*;
  * - Recursos de Gerencia: RH (Recursos Humanos), BSI (Bienes, Servicios e Infraestructura), CO (Conocimiento Organizacional).
  * - Niveles de Capacidad (0 al 5) y Roles oficiales.
  */
-public class MoProSoftPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class MoProSoftPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
 
