@@ -31,6 +31,8 @@ public class BattleEngine {
     static final int STAT_BASE_DAMAGE = 60;
     /** Codificaciones protegidas por la línea base de configuración del Administrador de Requerimientos. */
     static final int CONFIG_BASELINE_TURNS = 3;
+    /** Codificaciones sin defectos al diseñar con una plantilla PSP 2.1 (se consume al estimar). */
+    static final int TEMPLATE_CODINGS = 3;
     static final int STAT_YIELD_BONUS = 40;
 
     private boolean battleOver = false;
@@ -39,6 +41,7 @@ public class BattleEngine {
     private int continuousImprovementTurns = 0; // Efecto CMMI-5
     private int configBaselineTurns = 0;        // Codificaciones protegidas por la línea base de configuración
     private boolean halveNextEnemyAttack = false;
+    private int designTemplateCodings = 0;      // Codificaciones guiadas por una plantilla de diseño PSP 2.1
 
     public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
                         java.util.List<TeamMember> team, BattleListener listener) {
@@ -90,6 +93,9 @@ public class BattleEngine {
         if (configBaselineTurns > 0) {
             configBaselineTurns--;
             listener.onBattleLog("🔒 Línea base de configuración activa: los cambios están controlados y no se inyectan defectos.");
+        } else if (designTemplateCodings > 0) {
+            designTemplateCodings--;
+            listener.onBattleLog("📑 El código sigue la plantilla de diseño PSP 2.1: no se inyectan defectos.");
         } else if (random.nextDouble() < defectChance) {
             DefectType defectType = enemy.getAssociatedDefect() != null ? enemy.getAssociatedDefect() : DefectType.SINTAXIS;
             listener.onBattleLog("⚠️ ¡Alerta! Durante la codificación se inyectó un defecto: " + defectType.getName() + ".");
@@ -143,6 +149,14 @@ public class BattleEngine {
         enemyDefenseWeakened = true;
         hero.restoreMp(25);
         logTime("Planeación", 10, "Estimación de tamaño (LOC) y calendarización");
+
+        // Diseño con plantilla PSP 2.1: especificación formal antes de codificar
+        if (hero.getDesignTemplates() > 0) {
+            hero.useDesignTemplate();
+            designTemplateCodings = TEMPLATE_CODINGS;
+            listener.onBattleLog("📑 Usas una Plantilla de Diseño PSP 2.1: las próximas " + TEMPLATE_CODINGS
+                    + " codificaciones no inyectan defectos.");
+        }
 
         // Re-estimación con datos reales del avance (PSP 1): el estimado se acerca al tamaño real
         int oldEstimate = pspLog.getEstimatedLOC();

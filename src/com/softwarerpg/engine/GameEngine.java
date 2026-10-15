@@ -101,8 +101,9 @@ public class GameEngine {
     }
 
     public boolean registerPIP(String idea) {
+        if (idea == null || idea.trim().isEmpty()) return false;
         if (hero.consumeMp(20)) {
-            hero.addPip(1);
+            hero.addPipIdea(idea.trim());
             hero.heal(25);
             org.addProcessPoints(25);
             return true;

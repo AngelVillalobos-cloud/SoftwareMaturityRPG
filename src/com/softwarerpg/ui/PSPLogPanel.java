@@ -157,6 +157,7 @@ public class PSPLogPanel extends JPanel {
         lblLocInfo.setText("📝 LOC real: " + loc + " / estimado: " + gameEngine.getPspLog().getEstimatedLOC());
         lblLocInfo.setToolTipText("Las LOC reales crecen con el avance del proyecto. Compara con tu estimado (PSP 1).");
         lblPipCount.setText("💡 Ideas en PIP: " + gameEngine.getHero().getPipCount() + " mejoras");
+        lblPipCount.setToolTipText(pipTooltip());
 
         // Actualizar tabla de tiempos
         timeTableModel.setRowCount(0);
@@ -198,6 +199,18 @@ public class PSPLogPanel extends JPanel {
                 String.format("%.1f", p.getDefectDensity()), String.format("%.0f%%", p.getYield())
             });
         }
+    }
+
+    /** Lista de ideas del Plan de Mejora Personal para mostrarlas al pasar el ratón. */
+    private String pipTooltip() {
+        List<String> ideas = gameEngine.getHero().getPipIdeas();
+        if (ideas.isEmpty()) return "Aún no registras ideas de mejora.";
+        StringBuilder sb = new StringBuilder("<html><b>Plan de Mejora Personal:</b>");
+        for (int i = 0; i < ideas.size(); i++) {
+            String safe = ideas.get(i).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+            sb.append("<br>").append(i + 1).append(". ").append(safe);
+        }
+        return sb.append("</html>").toString();
     }
 
     private void showAddPipDialog() {

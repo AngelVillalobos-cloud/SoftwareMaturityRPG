@@ -1,5 +1,9 @@
 package com.softwarerpg.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Representa al Ingeniero de Software protagonista del RPG.
  * Maneja estadísticas, nivel PSP, nivel CMMI, disciplina y habilidades.
@@ -20,7 +24,7 @@ public class Hero {
     // Recursos de calidad adquiridos
     private int checklists;       // Listas de chequeo PSP 2
     private int designTemplates;  // Plantillas de diseño PSP 2.1
-    private int pipCount;         // Propuestas de mejora personal implementadas
+    private final List<String> pipIdeas = new ArrayList<>(); // Plan de Mejora Personal (PIP)
 
     public Hero(String name) {
         this.name = name;
@@ -35,7 +39,6 @@ public class Hero {
         this.cmmiLevel = CMMILevel.NIVEL_1;
         this.checklists = 2;
         this.designTemplates = 1;
-        this.pipCount = 0;
     }
 
     public void addXp(int amount) {
@@ -105,7 +108,8 @@ public class Hero {
     public int getDesignTemplates() { return designTemplates; }
     public void addDesignTemplates(int qty) { this.designTemplates += qty; }
     public void useDesignTemplate() { if (designTemplates > 0) designTemplates--; }
-    public int getPipCount() { return pipCount; }
-    public void addPip(int count) { this.pipCount += count; }
+    public int getPipCount() { return pipIdeas.size(); }
+    public List<String> getPipIdeas() { return Collections.unmodifiableList(pipIdeas); }
+    public void addPipIdea(String idea) { pipIdeas.add(idea); }
 }
 

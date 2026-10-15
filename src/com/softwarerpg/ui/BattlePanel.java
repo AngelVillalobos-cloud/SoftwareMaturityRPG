@@ -238,7 +238,8 @@ public class BattlePanel extends JPanel {
         btnInspect.setText("📋 Checklist PSP (Curar) · quedan " + hero.getChecklists());
         btnInspect.setToolTipText("Revisión con lista de chequeo: recupera salud. Consume 1 checklist (cómpralas en la Campaña).");
         btnEstimate.setText("📐 Estimación LOC · " + COST_ESTIMATE + " MP");
-        btnEstimate.setToolTipText("Planeación PSP 1: tu próximo ataque hace +40% de daño y recuperas 25 MP.");
+        btnEstimate.setToolTipText("Planeación PSP 1: re-estimas el tamaño, tu próximo ataque hace +40% de daño y recuperas 25 MP. "
+                + "Si tienes Plantillas de Diseño, se usa una: 3 codificaciones sin defectos.");
         btnSynergy.setText("🤝 Sinergia TSP · " + COST_SYNERGY + " MP");
         btnSynergy.setToolTipText("Pide ayuda a un rol de tu equipo TSP (elige en el menú).");
         btnStatControl.setText(cmmi >= 4 ? "📊 Control Estadístico · " + COST_STAT + " MP" : "🔒 Control Estadístico (requiere CMMI 4)");

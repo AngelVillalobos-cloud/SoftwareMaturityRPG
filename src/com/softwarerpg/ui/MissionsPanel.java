@@ -71,9 +71,10 @@ public class MissionsPanel extends JPanel {
         });
 
         JButton btnBuyTemplate = Theme.createStyledButton("📐 Comprar Plantilla Diseño (120 Oro)", Theme.ACCENT_PURPLE);
+        btnBuyTemplate.setToolTipText("Se usa al hacer Estimación LOC en combate: las próximas 3 codificaciones no inyectan defectos.");
         btnBuyTemplate.addActionListener(e -> {
             if (gameEngine.buyDesignTemplate()) {
-                JOptionPane.showMessageDialog(this, "¡Plantilla de Diseño PSP 2.1 adquirida!", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "¡Plantilla de Diseño PSP 2.1 adquirida!\nSe usará en tu próxima Estimación LOC: 3 codificaciones sin defectos.", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
                 onStateUpdated.run();
             } else {
                 JOptionPane.showMessageDialog(this, "Oro insuficiente.", "Error", JOptionPane.WARNING_MESSAGE);
