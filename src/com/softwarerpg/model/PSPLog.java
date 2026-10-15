@@ -1,5 +1,6 @@
 package com.softwarerpg.model;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,8 +24,27 @@ public class PSPLog {
     private int actualLOC = 100;
     private int estimatedMinutes = 120;
 
+    // Reloj simulado del proyecto: cada actividad empieza donde terminó la anterior
+    private LocalDateTime projectClock = startOfNow();
+
     public void addTimeLog(TimeLogEntry entry) {
         timeLogs.add(entry);
+    }
+
+    /**
+     * Registra una actividad PSP en la bitácora de tiempos usando el reloj del proyecto.
+     * Inicio = fin de la actividad anterior; Fin = inicio + minutos de trabajo + interrupción.
+     */
+    public void logActivity(String activity, int workMinutes, int interruptionMinutes,
+                            String comments, boolean completed) {
+        LocalDateTime start = projectClock;
+        LocalDateTime end = start.plusMinutes(workMinutes + interruptionMinutes);
+        timeLogs.add(new TimeLogEntry(start, end, interruptionMinutes, activity, comments, completed, 1));
+        projectClock = end;
+    }
+
+    private static LocalDateTime startOfNow() {
+        return LocalDateTime.now().withSecond(0).withNano(0);
     }
 
     /** Registra un defecto encontrado y corregido en el mismo momento. */
@@ -126,6 +146,7 @@ public class PSPLog {
         this.estimatedLOC = estimatedLOC;
         this.actualLOC = estimatedLOC;
         this.estimatedMinutes = estimatedMins;
+        this.projectClock = startOfNow();
     }
 }
 

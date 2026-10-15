@@ -1,7 +1,6 @@
 package com.softwarerpg.engine;
 
 import com.softwarerpg.model.*;
-import java.time.LocalDateTime;
 import java.util.Random;
 
 /**
@@ -70,6 +69,7 @@ public class BattleEngine {
 
         listener.onBattleLog("💻 " + hero.getName() + " escribe módulos de código e inflige " + baseDamage + " de daño.");
         enemy.takeDamage(baseDamage);
+        logTime("Codificación", 15, "Implementación de módulos contra " + enemy.getName());
 
         // Posibilidad de inyectar un defecto si el nivel PSP es bajo
         double defectChance = Math.max(0.08, 0.40 - (hero.getPspLevel().ordinal() * 0.07));
@@ -101,6 +101,7 @@ public class BattleEngine {
 
         // La revisión remueve defectos ya inyectados (no crea defectos nuevos)
         int removed = pspLog.removePendingDefects(CHECKLIST_REMOVALS, "Revisión de código", 5);
+        logTime("Revisión de código", 10, "Checklist PSP: " + removed + " defecto(s) removido(s)");
 
         listener.onBattleLog("📋 Aplicas una Lista de Chequeo PSP 2: Revisión de diseño y código.");
         listener.onBattleLog(removed > 0
@@ -126,6 +127,7 @@ public class BattleEngine {
 
         enemyDefenseWeakened = true;
         hero.restoreMp(25);
+        logTime("Planeación", 10, "Estimación de tamaño (LOC) y calendarización");
         listener.onBattleLog("📐 Realizas estimación formal de tamaño (LOC) y planificación de tareas (PSP 1 / 1.1).");
         listener.onBattleLog("🎯 ¡La defensa del enemigo se reduce drásticamente para tu próximo ataque y recuperas disciplina!");
 
@@ -149,6 +151,7 @@ public class BattleEngine {
         String memberName = member != null ? member.getName() : role.getTitle();
 
         listener.onBattleLog("🤝 ¡Sinergia TSP activada con " + memberName + "!");
+        logTime(synergyPhase(role), 10, "Sinergia TSP con " + memberName);
 
         switch (role) {
             case LIDER_EQUIPO:
@@ -200,6 +203,7 @@ public class BattleEngine {
 
         int statDamage = 60 + (int)(pspLog.calculateDefectDensity() * 2);
         enemy.takeDamage(statDamage);
+        logTime("Análisis cuantitativo", 10, "Control estadístico de subprocesos (CMMI 4)");
         listener.onBattleLog("📊 ¡Control Cuantitativo CMMI-4! Aplicas técnicas estadísticas a los subprocesos.");
         listener.onBattleLog("💥 Erradicas causas especiales de variación e infliges " + statDamage + " de daño certero.");
 
@@ -226,6 +230,7 @@ public class BattleEngine {
 
         continuousImprovementTurns = 3;
         hero.heal(50);
+        logTime("Mejora de proceso", 10, "Mejora continua e innovación (CMMI 5)");
         listener.onBattleLog("🚀 ¡Optimización CMMI-5! Despliegue de tecnología innovadora y gestión de causas comunes de variación.");
         listener.onBattleLog("🌟 Salud restaurada en +50 HP y regeneración activa durante 3 turnos.");
 
@@ -258,14 +263,23 @@ public class BattleEngine {
         listener.onBattleLog("👾 " + enemy.getName() + " contraataca con [" + enemy.getSubtitle() + "] causando " + finalDamage + " de daño"
                 + (pending > 0 ? " (agravado por " + pending + " defecto(s) pendiente(s))." : "."));
 
-        // Registrar tiempo invertido en la bitácora PSP
-        LocalDateTime now = LocalDateTime.now();
-        pspLog.addTimeLog(new TimeLogEntry(
-            now.minusMinutes(10), now, 2, "Resolución de Defectos",
-            "Combate contra " + enemy.getName(), false, 1
-        ));
-
         checkBattleStatus();
+    }
+
+    /** Registra en la bitácora de tiempos la actividad PSP del turno, con una interrupción de 0 a 3 min. */
+    private void logTime(String phase, int minutes, String comment) {
+        pspLog.logActivity(phase, minutes, random.nextInt(4), comment, false);
+    }
+
+    private static String synergyPhase(TSPRole role) {
+        switch (role) {
+            case LIDER_EQUIPO: return "Junta de equipo (TSP)";
+            case GESTOR_DESARROLLO: return "Diseño";
+            case GESTOR_PLANIFICACION: return "Planeación";
+            case GESTOR_CALIDAD: return "Inspección (TSP)";
+            case GESTOR_REQUERIMIENTOS: return "Gestión de configuración";
+            default: return "Trabajo en equipo";
+        }
     }
 
     private void checkBattleStatus() {
@@ -279,16 +293,12 @@ public class BattleEngine {
             org.addBudget(enemy.getGoldReward() / 2);
             org.addProcessPoints(30);
 
-            // Registrar Post-Mortem en bitácora PSP
-            LocalDateTime now = LocalDateTime.now();
-            pspLog.addTimeLog(new TimeLogEntry(
-                now.minusMinutes(20), now, 0, "Post-Mortem",
-                "Evaluación final del combate y consolidación de métricas", true, 1
-            ));
+            pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto entregado: consolidación de métricas", true);
 
             listener.onBattleEnded(true);
         } else if (hero.getHp() <= 0) {
             battleOver = true;
+            pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto fallido: análisis de causas", true);
             listener.onBattleLog("💀 DERROTA: El proyecto ha colapsado ante la acumulación de defectos.");
             listener.onBattleLog("⚠️ Revisa tus bitácoras de tiempos y defectos en la pestaña PSP para identificar las fallas.");
             listener.onBattleEnded(false);
