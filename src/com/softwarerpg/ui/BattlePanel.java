@@ -217,7 +217,7 @@ public class BattlePanel extends JPanel {
             case GESTOR_DESARROLLO: return "Daño fuerte (45 + 5 × nivel CO)";
             case GESTOR_PLANIFICACION: return "Tu próximo ataque hace +40% de daño";
             case GESTOR_CALIDAD: return "Inspección por pares: +20 HP y 25 de daño";
-            case GESTOR_REQUERIMIENTOS: return "Fija la línea base de configuración";
+            case GESTOR_REQUERIMIENTOS: return "3 codificaciones sin defectos y -50% al contraataque";
             default: return role.getSkillEffect();
         }
     }

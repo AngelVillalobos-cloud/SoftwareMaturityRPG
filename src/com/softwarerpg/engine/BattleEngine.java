@@ -29,12 +29,16 @@ public class BattleEngine {
     static final int PENDING_DEFECT_PENALTY = 2;
     /** Control Estadístico: daño base + bonificación proporcional al yield (máx. 100). */
     static final int STAT_BASE_DAMAGE = 60;
+    /** Codificaciones protegidas por la línea base de configuración del Administrador de Requerimientos. */
+    static final int CONFIG_BASELINE_TURNS = 3;
     static final int STAT_YIELD_BONUS = 40;
 
     private boolean battleOver = false;
     private int turnCount = 0;
     private boolean enemyDefenseWeakened = false;
     private int continuousImprovementTurns = 0; // Efecto CMMI-5
+    private int configBaselineTurns = 0;        // Codificaciones protegidas por la línea base de configuración
+    private boolean halveNextEnemyAttack = false;
 
     public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
                         java.util.List<TeamMember> team, BattleListener listener) {
@@ -83,7 +87,10 @@ public class BattleEngine {
 
         // Posibilidad de inyectar un defecto si el nivel PSP es bajo
         double defectChance = Math.max(0.08, 0.40 - (hero.getPspLevel().ordinal() * 0.07));
-        if (random.nextDouble() < defectChance) {
+        if (configBaselineTurns > 0) {
+            configBaselineTurns--;
+            listener.onBattleLog("🔒 Línea base de configuración activa: los cambios están controlados y no se inyectan defectos.");
+        } else if (random.nextDouble() < defectChance) {
             DefectType defectType = enemy.getAssociatedDefect() != null ? enemy.getAssociatedDefect() : DefectType.SINTAXIS;
             listener.onBattleLog("⚠️ ¡Alerta! Durante la codificación se inyectó un defecto: " + defectType.getName() + ".");
             pspLog.logInjectedDefect(defectType, "Codificación", "Defecto inyectado durante la codificación");
@@ -191,7 +198,10 @@ public class BattleEngine {
                 if (found > 0) listener.onBattleLog("🔍 La inspección por pares corrigió " + found + " defecto(s) pendiente(s).");
                 break;
             case GESTOR_REQUERIMIENTOS:
-                listener.onBattleLog("📦 El Administrador de Requerimientos fija la línea base de configuración. Los defectos quedan contenidos.");
+                configBaselineTurns = CONFIG_BASELINE_TURNS;
+                halveNextEnemyAttack = true;
+                listener.onBattleLog("📦 El Administrador de Requerimientos fija la línea base de configuración: las próximas "
+                        + CONFIG_BASELINE_TURNS + " codificaciones no inyectan defectos y el contraataque de este turno hace la mitad de daño.");
                 break;
         }
 
@@ -273,6 +283,11 @@ public class BattleEngine {
         // Reducción por madurez de procesos MoProSoft
         double defenseFactor = 1.0 - (org.getCapabilityLevel() * 0.08);
         int finalDamage = Math.max(3, (int)(rawAtk * defenseFactor));
+        if (halveNextEnemyAttack) {
+            finalDamage = Math.max(1, finalDamage / 2);
+            halveNextEnemyAttack = false;
+            listener.onBattleLog("📦 El control de cambios absorbe la mitad del ataque.");
+        }
 
         hero.takeDamage(finalDamage);
         listener.onBattleLog("👾 " + enemy.getName() + " contraataca con [" + enemy.getSubtitle() + "] causando " + finalDamage + " de daño"
