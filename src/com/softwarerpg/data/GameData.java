@@ -43,7 +43,7 @@ public class GameData {
         Enemy boss2 = new Enemy(
             "El Monstruo de Requisitos Ambulantes",
             "Pesadilla del Nivel 2: Ambigüedad y Alcance Descontrolado",
-            220, 26, 5, DefectType.ASIGNACION, 280, 400,
+            200, 25, 5, DefectType.ASIGNACION, 280, 400,
             "¡Cada día cambiaré los requisitos de tu cliente! ¡Tus planes documentados arderán bajo estrés!",
             true
         );
@@ -59,7 +59,7 @@ public class GameData {
         Enemy boss3 = new Enemy(
             "El Coloso de Procesos No Estandarizados",
             "Amenaza del Nivel 3: Falta de Métodos y Herramientas Comunes",
-            340, 35, 9, DefectType.CONSTRUCCION_PAQUETES, 450, 650,
+            280, 32, 8, DefectType.CONSTRUCCION_PAQUETES, 450, 650,
             "¡Cada desarrollador usa sus propias reglas! ¡Nadie sigue las normas ni procedimientos estándar!",
             true
         );
@@ -75,7 +75,7 @@ public class GameData {
         Enemy boss4 = new Enemy(
             "La Hidra de Variación Especial",
             "Bestia del Nivel 4: Ruido Estadístico y Causas Especiales",
-            480, 44, 14, DefectType.FUNCION, 650, 950,
+            460, 45, 14, DefectType.FUNCION, 650, 950,
             "¿Crees que puedes predecir mis ataques con números? ¡Mis defectos lógicos rompen tus distribuciones estadísticas!",
             true
         );
@@ -91,7 +91,7 @@ public class GameData {
         Enemy boss5 = new Enemy(
             "La Entropía del Código Espagueti",
             "El Último Desafío del Nivel 5: La Inercia y Causas Comunes de Variación",
-            650, 55, 18, DefectType.SISTEMA, 1000, 1800,
+            550, 52, 16, DefectType.SISTEMA, 1000, 1800,
             "¡El software envejece y decae! ¡Ninguna mejora continua puede salvarte de la entropía definitiva!",
             true
         );

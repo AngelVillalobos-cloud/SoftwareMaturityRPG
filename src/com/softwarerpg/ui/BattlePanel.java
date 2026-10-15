@@ -213,7 +213,7 @@ public class BattlePanel extends JPanel {
     /** Efecto real de cada rol TSP en combate (lo que el jugador necesita saber para decidir). */
     private static String synergyEffect(TSPRole role) {
         switch (role) {
-            case LIDER_EQUIPO: return "Recupera +35 HP y +25 MP";
+            case LIDER_EQUIPO: return "Recupera +30 HP y +10 MP";
             case GESTOR_DESARROLLO: return "Daño fuerte (45 + 5 × nivel CO)";
             case GESTOR_PLANIFICACION: return "Tu próximo ataque hace +40% de daño";
             case GESTOR_CALIDAD: return "Inspección por pares: +20 HP y 25 de daño";

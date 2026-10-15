@@ -33,6 +33,8 @@ public class BattleEngine {
     static final int CONFIG_BASELINE_TURNS = 3;
     /** Codificaciones sin defectos al diseñar con una plantilla PSP 2.1 (se consume al estimar). */
     static final int TEMPLATE_CODINGS = 3;
+    /** Variación del daño de codificar y del ataque enemigo (±15%). */
+    static final double DAMAGE_VARIANCE = 0.15;
     static final int STAT_YIELD_BONUS = 40;
 
     private boolean battleOver = false;
@@ -83,6 +85,7 @@ public class BattleEngine {
 
         // Bono de infraestructura MoProSoft BSI
         baseDamage += org.getInfrastructureLevel() * 3;
+        baseDamage = vary(baseDamage);
 
         listener.onBattleLog("💻 " + hero.getName() + " escribe módulos de código e inflige " + baseDamage + " de daño.");
         enemy.takeDamage(baseDamage);
@@ -191,9 +194,9 @@ public class BattleEngine {
 
         switch (role) {
             case LIDER_EQUIPO:
-                hero.heal(35);
-                hero.restoreMp(25);
-                listener.onBattleLog("📢 El Líder de Equipo motiva al grupo y revisa los compromisos semanales. (+35 HP, +25 MP).");
+                hero.heal(30);
+                hero.restoreMp(10);
+                listener.onBattleLog("📢 El Líder de Equipo motiva al grupo y revisa los compromisos semanales. (+30 HP, +10 MP).");
                 break;
             case GESTOR_DESARROLLO:
                 int devDmg = 45 + org.getKnowledgeBaseLevel() * 5;
@@ -290,7 +293,7 @@ public class BattleEngine {
             listener.onBattleLog("✨ Mejora continua activa: +15 HP regenerados.");
         }
 
-        int rawAtk = enemy.getAttackPower() + random.nextInt(6);
+        int rawAtk = vary(enemy.getAttackPower());
         // Los defectos sin corregir agravan las fallas en producción
         int pending = pspLog.getPendingDefects();
         rawAtk += pending * PENDING_DEFECT_PENALTY;
@@ -317,6 +320,11 @@ public class BattleEngine {
     private void logTime(String phase, int minutes, String comment) {
         turnCount++; // solo las acciones que sí se ejecutan cuentan como turno
         pspLog.logActivity(phase, minutes, random.nextInt(4), comment, false);
+    }
+
+    /** Variación aleatoria de ±15% para que ningún combate esté decidido de antemano. */
+    private int vary(int value) {
+        return (int) Math.round(value * (1.0 - DAMAGE_VARIANCE + random.nextDouble() * 2 * DAMAGE_VARIANCE));
     }
 
     private static String synergyPhase(TSPRole role) {

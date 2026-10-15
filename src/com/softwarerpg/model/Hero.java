@@ -52,13 +52,22 @@ public class Hero {
             mp = maxMp;
         }
         // Subida de nivel general del héroe
-        while (xp >= level * 150) {
+        while (xp >= xpForLevel(level + 1)) {
             level++;
             maxHp += 25;
             maxMp += 20;
             hp = maxHp;
             mp = maxMp;
         }
+    }
+
+    /**
+     * XP acumulada necesaria para alcanzar un nivel: 70 × (n-1) × n.
+     * Nivel 2 = 140, 3 = 420, 4 = 840, 5 = 1400... Con las recompensas de la campaña
+     * se llega a la misión N con nivel N aproximadamente.
+     */
+    public static int xpForLevel(int targetLevel) {
+        return 70 * (targetLevel - 1) * targetLevel;
     }
 
     public void takeDamage(int dmg) {
