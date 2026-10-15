@@ -48,17 +48,44 @@ En la pestaña **Gremio TSP** lideras una cuadrilla de ingenieros con los **5 ro
 
 ## 🚀 ¿Cómo Ejecutar el Juego?
 
-### Opción 1: Con el lanzador directo (Windows)
-Haz doble clic sobre el archivo:
-- `run_game.bat` (ejecuta el juego ya compilado)
+Requisito: **JDK 17 o superior** (`java -version` y `javac -version` deben funcionar).
+
+### Opción 1: Con los lanzadores (Windows)
+Haz doble clic sobre:
+- `run_game.bat` (ejecuta el juego; si aún no está compilado, lo compila primero)
 - `build_and_run.bat` (recompila y ejecuta)
+- `run_tests.bat` (ejecuta las pruebas JUnit; la primera vez descarga Maven automáticamente)
 
-### Opción 2: Desde la Terminal / PowerShell
+### Opción 2: Con Maven Wrapper (Windows, Linux o macOS, sin instalar Maven)
 ```powershell
-# Compilar:
-javac -encoding UTF-8 -d bin (Get-ChildItem -Recurse -Filter *.java src | Select-Object -ExpandProperty FullName)
+# Windows
+mvnw.cmd package
+java -jar target\software-maturity-rpg.jar
+```
+```bash
+# Linux / macOS
+./mvnw package
+java -jar target/software-maturity-rpg.jar
+```
+`package` compila, ejecuta las pruebas y genera el jar ejecutable. Solo pruebas: `mvnw.cmd test` o `./mvnw test`.
 
-# Ejecutar:
+### Opción 3: Solo con el JDK
+```powershell
+javac -encoding UTF-8 -d bin (Get-ChildItem -Recurse -Filter *.java src | Select-Object -ExpandProperty FullName)
 java -cp bin com.softwarerpg.Main
 ```
 
+## 🎮 Loop de juego
+
+1. En **Campaña CMMI** despliega la misión marcada como **⭐ SIGUIENTE MISIÓN** (las demás se desbloquean en orden).
+2. En **Combate RPG**, *Codifica* para dañar al defecto. Si tu salud baja, usa la *Checklist PSP* o la *Sinergia del Líder*. Cada botón muestra su costo y, al pasar el ratón, su efecto.
+3. Al terminar aparece el letrero de **¡VICTORIA!** o **¡PERDISTE!** con el resumen Post-Mortem PSP (tamaño y tiempo estimado vs. real, defectos, Dd y yield). En derrota puedes reintentar.
+4. Con el oro compra checklists y plantillas, mejora tu organización (MoProSoft) y entrena a tu equipo (TSP).
+
+## 💾 Partidas guardadas
+
+La partida se guarda sola al terminar cada combate y también desde el menú **Partida → Guardar** (Ctrl+S). Al abrir el juego se ofrece continuar la partida guardada. El archivo está en `%USERPROFILE%\.software-maturity-rpg\partida.properties` (Windows) o `~/.software-maturity-rpg/partida.properties` (Linux/macOS).
+
+## 🧪 Pruebas
+
+`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 300 campañas completas: verifica que un jugador que aplica el proceso (checklists, estimación, TSP, CMMI) gane las misiones 3 a 5 entre 55% y 95% al primer intento, y que un jugador que solo codifica no pase de la misión 3. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.
