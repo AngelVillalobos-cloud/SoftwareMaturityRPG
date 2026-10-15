@@ -3,6 +3,7 @@ package com.softwarerpg.engine;
 import com.softwarerpg.data.GameData;
 import com.softwarerpg.model.*;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Motor principal del juego RPG de Madurez y Calidad de Software.
@@ -15,11 +16,18 @@ public class GameEngine {
     private final List<TeamMember> team;
     private final List<Mission> missions;
     private final PSPLog pspLog;
+    private final Random random;
 
     private Mission activeMission;
     private BattleEngine currentBattle;
 
     public GameEngine(String heroName, String companyName) {
+        this(heroName, companyName, new Random());
+    }
+
+    /** Permite inyectar el generador aleatorio (tests deterministas y simulaciones de balance). */
+    public GameEngine(String heroName, String companyName, Random random) {
+        this.random = random;
         this.hero = new Hero(heroName);
         this.org = new MoProSoftOrg(companyName);
         this.team = GameData.createInitialTeam();
@@ -68,7 +76,8 @@ public class GameEngine {
                     }
                     listener.onBattleEnded(victory);
                 }
-            }
+            },
+            random
         );
     }
 
@@ -77,7 +86,7 @@ public class GameEngine {
         this.activeMission = null;
         // Cada caza rápida es un proyecto pequeño con su propio tamaño estimado
         this.pspLog.resetForNewProject("Caza rápida: " + enemy.getName(), 30 + stage * 30, 30 + stage * 20);
-        this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener);
+        this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener, random);
     }
 
     public boolean buyChecklist() {

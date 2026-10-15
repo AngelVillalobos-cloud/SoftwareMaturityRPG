@@ -10,3 +10,6 @@ bin/
 
 # Logs temporales
 *.log
+
+# Salida de Maven
+target/

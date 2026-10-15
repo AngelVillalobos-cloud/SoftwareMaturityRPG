@@ -20,7 +20,7 @@ public class BattleEngine {
     private final MoProSoftOrg org;
     private final java.util.List<TeamMember> team;
     private final BattleListener listener;
-    private final Random random = new Random();
+    private final Random random;
 
     /** Defectos pendientes que remueve una checklist PSP y una inspección por pares TSP. */
     static final int CHECKLIST_REMOVALS = 3;
@@ -47,6 +47,13 @@ public class BattleEngine {
 
     public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
                         java.util.List<TeamMember> team, BattleListener listener) {
+        this(hero, enemy, pspLog, org, team, listener, new Random());
+    }
+
+    /** Permite inyectar el generador aleatorio (tests deterministas y simulaciones de balance). */
+    public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
+                        java.util.List<TeamMember> team, BattleListener listener, Random random) {
+        this.random = random;
         this.hero = hero;
         this.enemy = enemy;
         this.pspLog = pspLog;
@@ -339,7 +346,7 @@ public class BattleEngine {
     }
 
     private void checkBattleStatus() {
-        pspLog.updateProgress(1.0 - (double) enemy.getHp() / enemy.getMaxHp());
+        pspLog.updateProgress((double) (enemy.getMaxHp() - enemy.getHp()) / enemy.getMaxHp());
         if (enemy.isDefeated()) {
             battleOver = true;
             listener.onBattleLog("🎉 ¡VICTORIA! Has derrotado a " + enemy.getName() + ".");
