@@ -193,7 +193,7 @@ public final class PSPLogPanel extends JPanel {
         historyTableModel.setRowCount(0);
         for (ProjectSummary p : gameEngine.getPspLog().getHistory()) {
             historyTableModel.addRow(new Object[]{
-                p.getProjectName(), p.isDelivered() ? "✅ Entregado" : "❌ Fallido",
+                p.getProjectName(), p.isDelivered() ? "Entregado" : "Fallido",
                 p.getEstimatedLOC(), p.getActualLOC(), String.format("%+.0f%%", p.getSizeErrorPercent()),
                 p.getEstimatedMinutes(), p.getActualMinutes(),
                 p.getTotalDefects() + (p.getPendingDefects() > 0 ? " (" + p.getPendingDefects() + " pend.)" : ""),

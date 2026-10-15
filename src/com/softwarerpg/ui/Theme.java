@@ -5,6 +5,8 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.plaf.basic.BasicGraphicsUtils;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
 /**
@@ -36,11 +38,37 @@ public class Theme {
         tabbedPane.setFont(FONT_HEADER);
     }
 
+    /** Fondo y borde de los botones deshabilitados: oscuros para que el texto se lea. */
+    public static final Color DISABLED_BG = new Color(45, 52, 66);
+
+    /** Marca para botones que reproducen su propio sonido en vez del clic genérico. */
+    public static final String CUSTOM_SOUND = "softwarerpg.customSound";
+
     public static JButton createStyledButton(String text, Color accent) {
         JButton btn = new JButton(text);
+        // UI propio: respeta los colores del tema aunque el Look&Feel sea Nimbus
+        // (Nimbus pinta los botones deshabilitados gris claro con texto blanco, ilegibles).
+        btn.setUI(new BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                g.setColor(c.isEnabled() ? c.getBackground() : DISABLED_BG);
+                g.fillRect(0, 0, c.getWidth(), c.getHeight());
+                super.paint(g, c);
+            }
+
+            @Override
+            protected void paintText(Graphics g, AbstractButton b, Rectangle textRect, String txt) {
+                FontMetrics fm = g.getFontMetrics();
+                g.setColor(b.isEnabled() ? b.getForeground() : TEXT_MUTED);
+                BasicGraphicsUtils.drawStringUnderlineCharAt(b, (Graphics2D) g, txt, -1,
+                        textRect.x, textRect.y + fm.getAscent());
+            }
+        });
         btn.setFont(FONT_BOLD);
         btn.setForeground(Color.WHITE);
         btn.setBackground(accent.darker());
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(accent, 1, true),
@@ -51,6 +79,7 @@ public class Theme {
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
+                if (!btn.isEnabled()) return;
                 btn.setBackground(accent);
                 btn.setForeground(Color.BLACK);
             }
@@ -59,6 +88,9 @@ public class Theme {
                 btn.setBackground(accent.darker());
                 btn.setForeground(Color.WHITE);
             }
+        });
+        btn.addActionListener(e -> {
+            if (btn.getClientProperty(CUSTOM_SOUND) == null) Sound.play(Sound.Sfx.CLICK);
         });
         return btn;
     }

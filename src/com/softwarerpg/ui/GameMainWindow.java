@@ -47,6 +47,7 @@ public final class GameMainWindow extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        EmojiSupport.install();
         initUI();
         setJMenuBar(createMenuBar());
         updateHeader();
@@ -202,6 +203,8 @@ public final class GameMainWindow extends JFrame {
         }
         msg.append("<br><br><i>Retrospectiva del equipo: salud y disciplina restauradas.</i></body></html>");
 
+        Sound.play(victory ? Sound.Sfx.VICTORY : Sound.Sfx.DEFEAT);
+
         // Al terminar cualquier combate el equipo hace una retrospectiva y recupera HP/MP
         hero.rest();
         updateAll();
@@ -253,8 +256,13 @@ public final class GameMainWindow extends JFrame {
         JMenuItem newGame = new JMenuItem("🆕 Nueva partida");
         newGame.addActionListener(e -> newGame());
 
+        JCheckBoxMenuItem sound = new JCheckBoxMenuItem("🔊 Sonido", Sound.isEnabled());
+        sound.addActionListener(e -> Sound.setEnabled(sound.isSelected()));
+
         menu.add(save);
         menu.add(load);
+        menu.addSeparator();
+        menu.add(sound);
         menu.addSeparator();
         menu.add(newGame);
         bar.add(menu);

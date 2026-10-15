@@ -155,12 +155,15 @@ public final class BattlePanel extends JPanel {
         btnStatControl = Theme.createStyledButton("📊 Control Estadístico (CMMI-4)", Theme.ACCENT_CYAN);
         btnContinuous = Theme.createStyledButton("🚀 Mejora Continua (CMMI-5)", Theme.ACCENT_GREEN);
 
-        btnCode.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionWriteCode()));
-        btnInspect.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionInspectCode()));
-        btnEstimate.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionEstimateSize()));
+        btnCode.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionWriteCode(), Sound.Sfx.ATTACK));
+        btnInspect.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionInspectCode(), Sound.Sfx.HEAL));
+        btnEstimate.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionEstimateSize(), Sound.Sfx.POWER));
         btnSynergy.addActionListener(e -> showSynergyMenu());
-        btnStatControl.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionStatisticalControl()));
-        btnContinuous.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionContinuousImprovement()));
+        btnStatControl.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionStatisticalControl(), Sound.Sfx.ATTACK));
+        btnContinuous.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionContinuousImprovement(), Sound.Sfx.HEAL));
+        for (JButton b : new JButton[]{btnCode, btnInspect, btnEstimate, btnStatControl, btnContinuous}) {
+            b.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
+        }
 
         buttonsGrid.add(btnCode);
         buttonsGrid.add(btnInspect);
@@ -175,7 +178,7 @@ public final class BattlePanel extends JPanel {
         updateBattleUI();
     }
 
-    private void executeAction(Runnable action) {
+    private void executeAction(Runnable action, Sound.Sfx sound) {
         if (gameEngine.getCurrentBattle() == null) {
             JOptionPane.showMessageDialog(this,
                 "No hay un proyecto o batalla activa.\nVe a la pestaña 'Campaña' para seleccionar un proyecto.",
@@ -189,6 +192,7 @@ public final class BattlePanel extends JPanel {
             return;
         }
 
+        Sound.play(sound);
         action.run();
         updateBattleUI();
         onStateUpdated.run();
@@ -205,7 +209,7 @@ public final class BattlePanel extends JPanel {
             JMenuItem item = new JMenuItem(role.getTitle() + "  →  " + synergyEffect(role));
             item.setToolTipText(role.getDescription());
             item.setFont(Theme.FONT_REGULAR);
-            item.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionTeamSynergy(role)));
+            item.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionTeamSynergy(role), Sound.Sfx.POWER));
             menu.add(item);
         }
         menu.show(btnSynergy, 0, -menu.getPreferredSize().height);
@@ -224,7 +228,7 @@ public final class BattlePanel extends JPanel {
     }
 
     public void logMessage(String msg) {
-        battleLogArea.append(msg + "\n");
+        battleLogArea.append(EmojiSupport.clean(msg, battleLogArea.getFont()) + "\n");
         battleLogArea.setCaretPosition(battleLogArea.getDocument().getLength());
     }
 

@@ -14,6 +14,7 @@ public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             installLookAndFeel();
+            com.softwarerpg.ui.EmojiSupport.install();
             GameEngine engine = askContinueSavedGame();
             if (engine == null) engine = askNewGame();
             GameMainWindow window = new GameMainWindow(engine);

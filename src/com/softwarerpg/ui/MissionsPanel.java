@@ -64,9 +64,11 @@ public final class MissionsPanel extends JPanel {
         JButton btnBuyChecklist = Theme.createStyledButton("🛒 Comprar Checklist (60 Oro)", Theme.ACCENT_GREEN);
         btnBuyChecklist.addActionListener(e -> {
             if (gameEngine.buyChecklist()) {
+                Sound.play(Sound.Sfx.COIN);
                 JOptionPane.showMessageDialog(this, "¡Checklist PSP adquirida! Lista para prevenir defectos en combate.", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
                 onStateUpdated.run();
             } else {
+                Sound.play(Sound.Sfx.ERROR);
                 JOptionPane.showMessageDialog(this, "Oro insuficiente.", "Error", JOptionPane.WARNING_MESSAGE);
             }
         });
@@ -75,12 +77,16 @@ public final class MissionsPanel extends JPanel {
         btnBuyTemplate.setToolTipText("Se usa al hacer Estimación LOC en combate: las próximas 3 codificaciones no inyectan defectos.");
         btnBuyTemplate.addActionListener(e -> {
             if (gameEngine.buyDesignTemplate()) {
+                Sound.play(Sound.Sfx.COIN);
                 JOptionPane.showMessageDialog(this, "¡Plantilla de Diseño PSP 2.1 adquirida!\nSe usará en tu próxima Estimación LOC: 3 codificaciones sin defectos.", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
                 onStateUpdated.run();
             } else {
+                Sound.play(Sound.Sfx.ERROR);
                 JOptionPane.showMessageDialog(this, "Oro insuficiente.", "Error", JOptionPane.WARNING_MESSAGE);
             }
         });
+
+        for (JButton b : new JButton[]{btnBuyChecklist, btnBuyTemplate}) b.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
 
         JButton btnQuickBug = Theme.createStyledButton("👾 Caza Rápida de Bugs", Theme.ACCENT_AMBER);
         btnQuickBug.addActionListener(e -> startQuickBattle());
