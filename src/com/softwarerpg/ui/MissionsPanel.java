@@ -46,9 +46,14 @@ public class MissionsPanel extends JPanel {
         JPanel topContent = new JPanel(new BorderLayout(10, 5));
         topContent.setOpaque(false);
 
-        JLabel infoLabel = new JLabel("<html><body style='width: 500px; color: #D1D5DB;'>"
-                + "Acepta proyectos de clientes y guía a tu equipo por los 5 niveles de madurez CMMI. "
-                + "Cada entrega exitosa registra bitácoras en PSP y fortalece a tu organización.</body></html>");
+        JLabel infoLabel = new JLabel("<html><body style='width: 640px; color: #D1D5DB;'>"
+                + "<b style='color:#FBBF24;'>¿Cómo se juega?</b> "
+                + "<b>1)</b> Despliega la <b>⭐ siguiente misión</b>. "
+                + "<b>2)</b> En combate <b>Codifica</b> para dañar al defecto; si tu salud baja usa la <b>Checklist PSP</b> "
+                + "o la <b>Sinergia del Líder</b>. "
+                + "<b>3)</b> Al ganar subes de nivel CMMI y se desbloquea la siguiente misión. "
+                + "<b>4)</b> Con el oro compra checklists y mejora tu organización (MoProSoft) y tu equipo (TSP)."
+                + "</body></html>");
         infoLabel.setFont(Theme.FONT_REGULAR);
         topContent.add(infoLabel, BorderLayout.CENTER);
 
@@ -93,6 +98,7 @@ public class MissionsPanel extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(missionsListPanel);
         scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getViewport().setBackground(Theme.BG_DARK);
         add(scrollPane, BorderLayout.CENTER);
 
@@ -103,11 +109,14 @@ public class MissionsPanel extends JPanel {
         missionsListPanel.removeAll();
         List<Mission> list = gameEngine.getMissions();
 
-        for (Mission mission : list) {
+        for (int i = 0; i < list.size(); i++) {
+            Mission mission = list.get(i);
+            boolean locked = isLocked(i);
+            boolean next = !mission.isCompleted() && !locked;
             JPanel card = new JPanel(new BorderLayout(10, 5));
             card.setBackground(Theme.PANEL_BG);
             card.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(Theme.BORDER_COLOR, 1, true),
+                new LineBorder(next ? Theme.ACCENT_AMBER : Theme.BORDER_COLOR, next ? 2 : 1, true),
                 new EmptyBorder(10, 12, 10, 12)
             ));
             card.setMaximumSize(new Dimension(Short.MAX_VALUE, 125));
@@ -116,12 +125,13 @@ public class MissionsPanel extends JPanel {
             JPanel infoPanel = new JPanel(new GridLayout(3, 1, 2, 2));
             infoPanel.setOpaque(false);
 
-            String statusTag = mission.isCompleted() ? "✅ [COMPLETADA] " : "⏳ [DISPONIBLE] ";
+            String statusTag = mission.isCompleted() ? "✅ [COMPLETADA] " : locked ? "🔒 [BLOQUEADA] " : "⭐ [SIGUIENTE MISIÓN] ";
             JLabel titleLabel = new JLabel(statusTag + mission.getTitle() + " (Cliente: " + mission.getClient() + ")");
             titleLabel.setFont(Theme.FONT_HEADER);
-            titleLabel.setForeground(mission.isCompleted() ? Theme.ACCENT_GREEN : Theme.ACCENT_CYAN);
+            titleLabel.setForeground(mission.isCompleted() ? Theme.ACCENT_GREEN
+                    : locked ? Theme.TEXT_MUTED : Theme.ACCENT_AMBER);
 
-            JLabel descLabel = new JLabel("<html><body style='width: 580px; color: #9CA3AF;'>" + mission.getDescription() + "</body></html>");
+            JLabel descLabel = new JLabel("<html><body style='width: 500px; color: #9CA3AF;'>" + mission.getDescription() + "</body></html>");
             descLabel.setFont(Theme.FONT_REGULAR);
 
             JLabel metricsLabel = new JLabel("📏 Tamaño Est.: " + mission.getEstimatedLoc() + " LOC | ⏱️ Tiempo Est.: " + mission.getEstimatedMinutes() + " min | 👾 Jefe: " + mission.getBossEnemy().getName());
@@ -137,7 +147,10 @@ public class MissionsPanel extends JPanel {
             JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 20));
             rightPanel.setOpaque(false);
 
-            JButton btnLaunch = Theme.createStyledButton(mission.isCompleted() ? "🔄 Reintentar Proyecto" : "🚀 Desplegar Proyecto", Theme.ACCENT_CYAN);
+            String launchText = mission.isCompleted() ? "🔄 Repetir Proyecto"
+                    : locked ? "🔒 Bloqueada" : "🚀 Desplegar Proyecto";
+            JButton btnLaunch = Theme.createStyledButton(launchText, next ? Theme.ACCENT_AMBER : Theme.ACCENT_CYAN);
+            btnLaunch.setEnabled(!locked);
             btnLaunch.addActionListener(e -> launchMission(mission));
             rightPanel.add(btnLaunch);
             card.add(rightPanel, BorderLayout.EAST);
@@ -148,6 +161,11 @@ public class MissionsPanel extends JPanel {
 
         missionsListPanel.revalidate();
         missionsListPanel.repaint();
+    }
+
+    /** Una misión se desbloquea al completar la anterior. */
+    private boolean isLocked(int index) {
+        return index > 0 && !gameEngine.getMissions().get(index - 1).isCompleted();
     }
 
     private void launchMission(Mission mission) {

@@ -22,6 +22,7 @@ public class BattlePanel extends JPanel {
     private JProgressBar heroHpBar;
     private JProgressBar heroMpBar;
     private JLabel heroStatusLabel;
+    private JLabel heroAuxLabel;
 
     private JLabel enemyNameLabel;
     private JLabel enemySubtitleLabel;
@@ -59,7 +60,7 @@ public class BattlePanel extends JPanel {
 
         // Tarjeta Héroe
         JPanel heroCard = Theme.createCard("👨‍💻 Ingeniero de Software (Tú)");
-        JPanel heroContent = new JPanel(new GridLayout(4, 1, 4, 4));
+        JPanel heroContent = new JPanel(new GridLayout(5, 1, 4, 4));
         heroContent.setOpaque(false);
 
         heroStatusLabel = new JLabel("Nivel " + gameEngine.getHero().getLevel() + " | " + gameEngine.getHero().getPspLevel().getTitle());
@@ -78,13 +79,14 @@ public class BattlePanel extends JPanel {
         heroMpBar.setForeground(Theme.ACCENT_CYAN);
         heroMpBar.setBackground(Theme.PANEL_SECONDARY);
 
-        JLabel heroAuxLabel = new JLabel("📋 Checklists: " + gameEngine.getHero().getChecklists() + " | 📑 Plantillas: " + gameEngine.getHero().getDesignTemplates());
+        heroAuxLabel = new JLabel("📋 Checklists: " + gameEngine.getHero().getChecklists() + " | 📑 Plantillas: " + gameEngine.getHero().getDesignTemplates());
         heroAuxLabel.setForeground(Theme.TEXT_MUTED);
         heroAuxLabel.setFont(Theme.FONT_REGULAR);
 
         heroContent.add(heroStatusLabel);
         heroContent.add(new JLabel("Salud del Proyecto (HP):") {{ setForeground(Theme.TEXT_MUTED); }});
         heroContent.add(heroHpBar);
+        heroContent.add(heroMpBar);
         heroContent.add(heroAuxLabel);
         heroCard.add(heroContent, BorderLayout.CENTER);
         heroSprite = new CharacterSprite(CharacterSprite.Kind.ENGINEER);
@@ -145,6 +147,7 @@ public class BattlePanel extends JPanel {
         buttonsGrid.setOpaque(false);
 
         btnCode = Theme.createStyledButton("💻 Codificar (Ataque)", Theme.ACCENT_CYAN);
+        btnCode.setToolTipText("Escribe código y daña al defecto (22 + 5 × tu nivel). Con PSP bajo puedes inyectar defectos.");
         btnInspect = Theme.createStyledButton("📋 Checklist PSP (Inspección)", Theme.ACCENT_GREEN);
         btnEstimate = Theme.createStyledButton("📐 Estimación LOC (PSP 1)", Theme.ACCENT_AMBER);
         btnSynergy = Theme.createStyledButton("🤝 Sinergia TSP (Equipo)", Theme.ACCENT_PURPLE);
@@ -198,7 +201,8 @@ public class BattlePanel extends JPanel {
 
         JPopupMenu menu = new JPopupMenu();
         for (TSPRole role : TSPRole.values()) {
-            JMenuItem item = new JMenuItem(role.getTitle() + " -> " + role.getSkillEffect());
+            JMenuItem item = new JMenuItem(role.getTitle() + "  →  " + synergyEffect(role));
+            item.setToolTipText(role.getDescription());
             item.setFont(Theme.FONT_REGULAR);
             item.addActionListener(e -> executeAction(() -> gameEngine.getCurrentBattle().actionTeamSynergy(role)));
             menu.add(item);
@@ -206,9 +210,41 @@ public class BattlePanel extends JPanel {
         menu.show(btnSynergy, 0, -menu.getPreferredSize().height);
     }
 
+    /** Efecto real de cada rol TSP en combate (lo que el jugador necesita saber para decidir). */
+    private static String synergyEffect(TSPRole role) {
+        switch (role) {
+            case LIDER_EQUIPO: return "Recupera +35 HP y +25 MP";
+            case GESTOR_DESARROLLO: return "Daño fuerte (45 + 5 × nivel CO)";
+            case GESTOR_PLANIFICACION: return "Tu próximo ataque hace +40% de daño";
+            case GESTOR_CALIDAD: return "Inspección por pares: +20 HP y 25 de daño";
+            case GESTOR_REQUERIMIENTOS: return "Fija la línea base de configuración";
+            default: return role.getSkillEffect();
+        }
+    }
+
     public void logMessage(String msg) {
         battleLogArea.append(msg + "\n");
         battleLogArea.setCaretPosition(battleLogArea.getDocument().getLength());
+    }
+
+    private static final int COST_ESTIMATE = 15;
+    private static final int COST_SYNERGY = 20;
+    private static final int COST_STAT = 25;
+    private static final int COST_CONTINUOUS = 30;
+
+    /** Textos de los botones con su costo para que el jugador sepa qué puede usar. */
+    private void updateActionLabels(Hero hero) {
+        int cmmi = hero.getCmmiLevel().getLevelNumber();
+        btnInspect.setText("📋 Checklist PSP (Curar) · quedan " + hero.getChecklists());
+        btnInspect.setToolTipText("Revisión con lista de chequeo: recupera salud. Consume 1 checklist (cómpralas en la Campaña).");
+        btnEstimate.setText("📐 Estimación LOC · " + COST_ESTIMATE + " MP");
+        btnEstimate.setToolTipText("Planeación PSP 1: tu próximo ataque hace +40% de daño y recuperas 25 MP.");
+        btnSynergy.setText("🤝 Sinergia TSP · " + COST_SYNERGY + " MP");
+        btnSynergy.setToolTipText("Pide ayuda a un rol de tu equipo TSP (elige en el menú).");
+        btnStatControl.setText(cmmi >= 4 ? "📊 Control Estadístico · " + COST_STAT + " MP" : "🔒 Control Estadístico (requiere CMMI 4)");
+        btnStatControl.setToolTipText("CMMI 4: ataque certero basado en control estadístico de tus procesos.");
+        btnContinuous.setText(cmmi >= 5 ? "🚀 Mejora Continua · " + COST_CONTINUOUS + " MP" : "🔒 Mejora Continua (requiere CMMI 5)");
+        btnContinuous.setToolTipText("CMMI 5: +50 HP y regeneras +15 HP durante 3 turnos.");
     }
 
     private void updateSprites(Hero hero, BattleEngine battle) {
@@ -257,6 +293,8 @@ public class BattlePanel extends JPanel {
         heroMpBar.setString(hero.getMp() + " / " + hero.getMaxMp() + " MP");
 
         heroStatusLabel.setText("Nivel " + hero.getLevel() + " | " + hero.getPspLevel().getTitle() + " | CMMI: " + hero.getCmmiLevel().getName());
+        heroAuxLabel.setText("📋 Checklists: " + hero.getChecklists() + " | 📑 Plantillas: " + hero.getDesignTemplates());
+        updateActionLabels(hero);
 
         BattleEngine battle = gameEngine.getCurrentBattle();
         updateSprites(hero, battle);
@@ -270,12 +308,13 @@ public class BattlePanel extends JPanel {
             enemyQuoteLabel.setText("\"" + enemy.getIntroQuote() + "\"");
 
             boolean active = !battle.isBattleOver();
+            int cmmi = hero.getCmmiLevel().getLevelNumber();
             btnCode.setEnabled(active);
-            btnInspect.setEnabled(active);
-            btnEstimate.setEnabled(active);
-            btnSynergy.setEnabled(active);
-            btnStatControl.setEnabled(active && hero.getCmmiLevel().getLevelNumber() >= 4);
-            btnContinuous.setEnabled(active && hero.getCmmiLevel().getLevelNumber() >= 5);
+            btnInspect.setEnabled(active && hero.getChecklists() > 0);
+            btnEstimate.setEnabled(active && hero.getMp() >= COST_ESTIMATE);
+            btnSynergy.setEnabled(active && hero.getMp() >= COST_SYNERGY);
+            btnStatControl.setEnabled(active && cmmi >= 4 && hero.getMp() >= COST_STAT);
+            btnContinuous.setEnabled(active && cmmi >= 5 && hero.getMp() >= COST_CONTINUOUS);
         } else {
             enemyNameLabel.setText("Sin enemigo activo");
             enemySubtitleLabel.setText("Selecciona un proyecto en la pestaña Campaña");

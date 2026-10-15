@@ -131,6 +131,12 @@ public class TSPTeamPanel extends JPanel {
     }
 
     private void holdWeeklyMeeting() {
+        if (gameEngine.isBattleInProgress()) {
+            JOptionPane.showMessageDialog(this,
+                "La junta semanal se realiza entre proyectos, no a mitad de un combate.",
+                "Combate en curso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         gameEngine.getHero().restoreMp(30);
         for (TeamMember m : gameEngine.getTeam()) {
             m.restoreEnergy(30);

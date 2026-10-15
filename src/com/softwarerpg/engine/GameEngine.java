@@ -35,6 +35,11 @@ public class GameEngine {
     public Mission getActiveMission() { return activeMission; }
     public BattleEngine getCurrentBattle() { return currentBattle; }
 
+    /** true si hay un combate iniciado que aún no termina. */
+    public boolean isBattleInProgress() {
+        return currentBattle != null && !currentBattle.isBattleOver();
+    }
+
     public void startMission(Mission mission, BattleEngine.BattleListener listener) {
         this.activeMission = mission;
         mission.getBossEnemy().resetHp();

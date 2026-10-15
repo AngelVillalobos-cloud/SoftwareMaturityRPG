@@ -106,6 +106,12 @@ public class GameMainWindow extends JFrame {
 
         JButton btnRest = Theme.createStyledButton("☕ Descanso / Retrospectiva", Theme.ACCENT_AMBER);
         btnRest.addActionListener(e -> {
+            if (gameEngine.isBattleInProgress()) {
+                JOptionPane.showMessageDialog(this,
+                    "No puedes descansar a mitad de un combate.\nTermina el proyecto primero.",
+                    "Combate en curso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             gameEngine.getHero().rest();
             JOptionPane.showMessageDialog(this,
                 "Has realizado una pausa disciplinada y retrospectiva de sprint.\n¡Salud (HP) y Disciplina (MP) restauradas al 100%!",
