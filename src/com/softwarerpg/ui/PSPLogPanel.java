@@ -138,7 +138,8 @@ public class PSPLogPanel extends JPanel {
         lblTotalDefects.setText("🐛 Defectos: " + totalDefects + " (pendientes: " + gameEngine.getPspLog().getPendingDefects() + ")");
         lblDefectDensity.setText(String.format("📐 Dd: %.1f def/KLOC | Yield: %.0f%%", density, gameEngine.getPspLog().calculateYield()));
         lblDefectDensity.setToolTipText("Dd = 1000 × defectos / LOC.  Yield = % de defectos removidos antes de la entrega.");
-        lblLocInfo.setText("📝 Tamaño del Proyecto: " + loc + " LOC");
+        lblLocInfo.setText("📝 LOC real: " + loc + " / estimado: " + gameEngine.getPspLog().getEstimatedLOC());
+        lblLocInfo.setToolTipText("Las LOC reales crecen con el avance del proyecto. Compara con tu estimado (PSP 1).");
         lblPipCount.setText("💡 Ideas en PIP: " + gameEngine.getHero().getPipCount() + " mejoras");
 
         // Actualizar tabla de tiempos

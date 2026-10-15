@@ -42,6 +42,14 @@ public class BattleEngine {
         this.team = team;
         this.listener = listener;
 
+        // Tamaño real del producto: el error de estimación baja con la disciplina PSP
+        // y los ingenieros sin datos históricos tienden a subestimar.
+        int psp = hero.getPspLevel().ordinal();
+        double bias = Math.max(0, 0.15 - 0.03 * psp);
+        double spread = Math.max(0.05, 0.30 - 0.05 * psp);
+        double error = Math.max(-0.4, bias + random.nextGaussian() * spread);
+        pspLog.setFinalLOC((int) Math.round(pspLog.getEstimatedLOC() * (1 + error)));
+
         listener.onBattleLog(">>> ¡Ha aparecido " + enemy.getName() + "! <<<");
         listener.onBattleLog(enemy.getSubtitle());
         listener.onBattleLog("\"" + enemy.getIntroQuote() + "\"");
@@ -128,6 +136,14 @@ public class BattleEngine {
         enemyDefenseWeakened = true;
         hero.restoreMp(25);
         logTime("Planeación", 10, "Estimación de tamaño (LOC) y calendarización");
+
+        // Re-estimación con datos reales del avance (PSP 1): el estimado se acerca al tamaño real
+        int oldEstimate = pspLog.getEstimatedLOC();
+        int newEstimate = (int) Math.round((oldEstimate + pspLog.getFinalLOC()) / 2.0);
+        pspLog.setEstimatedLOC(newEstimate);
+        if (newEstimate != oldEstimate) {
+            listener.onBattleLog("📏 Re-estimación de tamaño: de " + oldEstimate + " a " + newEstimate + " LOC.");
+        }
         listener.onBattleLog("📐 Realizas estimación formal de tamaño (LOC) y planificación de tareas (PSP 1 / 1.1).");
         listener.onBattleLog("🎯 ¡La defensa del enemigo se reduce drásticamente para tu próximo ataque y recuperas disciplina!");
 
@@ -283,6 +299,7 @@ public class BattleEngine {
     }
 
     private void checkBattleStatus() {
+        pspLog.updateProgress(1.0 - (double) enemy.getHp() / enemy.getMaxHp());
         if (enemy.isDefeated()) {
             battleOver = true;
             listener.onBattleLog("🎉 ¡VICTORIA! Has derrotado a " + enemy.getName() + ".");
@@ -294,6 +311,9 @@ public class BattleEngine {
             org.addProcessPoints(30);
 
             pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto entregado: consolidación de métricas", true);
+            listener.onBattleLog(String.format("📏 Post-Mortem: tamaño estimado %d LOC vs real %d LOC (error %+.0f%%); tiempo estimado %d min vs real %d min.",
+                    pspLog.getEstimatedLOC(), pspLog.getActualLOC(), pspLog.getSizeEstimationErrorPercent(),
+                    pspLog.getEstimatedMinutes(), pspLog.getTotalTimeMinutes()));
 
             listener.onBattleEnded(true);
         } else if (hero.getHp() <= 0) {

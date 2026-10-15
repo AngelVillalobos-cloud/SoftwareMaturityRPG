@@ -5,6 +5,7 @@ import com.softwarerpg.engine.GameEngine;
 import com.softwarerpg.model.CMMILevel;
 import com.softwarerpg.model.Enemy;
 import com.softwarerpg.model.Hero;
+import com.softwarerpg.model.PSPLog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -184,7 +185,8 @@ public class GameMainWindow extends JFrame {
                .append("Derrotaste a <b>").append(enemy.getName()).append("</b> en ")
                .append(battle.getTurnCount()).append(" turnos.<br><br>")
                .append("⭐ Recompensas: <b>+").append(enemy.getXpReward()).append(" XP</b> y <b>+")
-               .append(enemy.getGoldReward()).append(" Oro</b>.");
+               .append(enemy.getGoldReward()).append(" Oro</b>.<br><br>")
+               .append(postMortemSummary());
             if (cmmiAtBattleStart != null && hero.getCmmiLevel() != cmmiAtBattleStart) {
                 msg.append("<br><br>🏆 ¡Tu organización ascendió a <b>CMMI ")
                    .append(hero.getCmmiLevel().getName()).append("</b>!");
@@ -214,6 +216,18 @@ public class GameMainWindow extends JFrame {
         } else {
             mainTabs.setSelectedIndex(0);
         }
+    }
+
+    /** Resumen PSP del proyecto: estimado vs. real de tamaño y tiempo, y calidad. */
+    private String postMortemSummary() {
+        PSPLog log = gameEngine.getPspLog();
+        return String.format("📊 <b>Post-Mortem PSP</b><br>"
+                + "📏 Tamaño: estimado %d LOC, real %d LOC (error %+.0f%%)<br>"
+                + "⏱️ Tiempo: estimado %d min, real %d min (error %+.0f%%)<br>"
+                + "🐛 Defectos: %d (pendientes %d) | Dd %.1f def/KLOC | Yield %.0f%%",
+                log.getEstimatedLOC(), log.getActualLOC(), log.getSizeEstimationErrorPercent(),
+                log.getEstimatedMinutes(), log.getTotalTimeMinutes(), log.getTimeEstimationErrorPercent(),
+                log.getTotalDefects(), log.getPendingDefects(), log.calculateDefectDensity(), log.calculateYield());
     }
 
     private JLabel createBadge(String text, Color color) {

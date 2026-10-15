@@ -75,6 +75,8 @@ public class GameEngine {
     public void startRandomPracticeBattle(int stage, BattleEngine.BattleListener listener) {
         Enemy enemy = GameData.createRandomBug(stage);
         this.activeMission = null;
+        // Cada caza rápida es un proyecto pequeño con su propio tamaño estimado
+        this.pspLog.resetForNewProject(30 + stage * 30, 30 + stage * 20);
         this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener);
     }
 

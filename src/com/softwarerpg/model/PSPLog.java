@@ -21,7 +21,8 @@ public class PSPLog {
 
     // Métricas acumuladas del proyecto
     private int estimatedLOC = 100;
-    private int actualLOC = 100;
+    private int actualLOC = 0;      // LOC producidas hasta ahora en el proyecto
+    private int finalLOC = 100;     // Tamaño real que tendrá el producto terminado
     private int estimatedMinutes = 120;
 
     // Reloj simulado del proyecto: cada actividad empieza donde terminó la anterior
@@ -139,12 +140,34 @@ public class PSPLog {
     public int getActualLOC() { return actualLOC; }
     public void setActualLOC(int actualLOC) { this.actualLOC = actualLOC; }
 
+    public int getFinalLOC() { return finalLOC; }
+    public void setFinalLOC(int finalLOC) { this.finalLOC = Math.max(1, finalLOC); }
+
+    /** Actualiza las LOC producidas según el avance del proyecto (0.0 a 1.0). */
+    public void updateProgress(double fraction) {
+        double f = Math.max(0, Math.min(1, fraction));
+        this.actualLOC = (int) Math.round(finalLOC * f);
+    }
+
+    /** Error de estimación de tamaño PSP: (real - estimado) / estimado, en %. */
+    public double getSizeEstimationErrorPercent() {
+        if (estimatedLOC <= 0) return 0.0;
+        return 100.0 * (actualLOC - estimatedLOC) / estimatedLOC;
+    }
+
+    /** Error de estimación de tiempo: (real - estimado) / estimado, en %. */
+    public double getTimeEstimationErrorPercent() {
+        if (estimatedMinutes <= 0) return 0.0;
+        return 100.0 * (getTotalTimeMinutes() - estimatedMinutes) / estimatedMinutes;
+    }
+
     public int getEstimatedMinutes() { return estimatedMinutes; }
     public void setEstimatedMinutes(int estimatedMinutes) { this.estimatedMinutes = estimatedMinutes; }
 
     public void resetForNewProject(int estimatedLOC, int estimatedMins) {
         this.estimatedLOC = estimatedLOC;
-        this.actualLOC = estimatedLOC;
+        this.actualLOC = 0;
+        this.finalLOC = estimatedLOC;
         this.estimatedMinutes = estimatedMins;
         this.projectClock = startOfNow();
     }
