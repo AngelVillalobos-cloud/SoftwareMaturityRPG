@@ -23,6 +23,12 @@ public class BattleEngine {
     private final BattleListener listener;
     private final Random random = new Random();
 
+    /** Defectos pendientes que remueve una checklist PSP y una inspección por pares TSP. */
+    static final int CHECKLIST_REMOVALS = 3;
+    static final int PEER_REVIEW_REMOVALS = 2;
+    /** Daño extra del enemigo por cada defecto inyectado que siga sin corregir. */
+    static final int PENDING_DEFECT_PENALTY = 2;
+
     private boolean battleOver = false;
     private int turnCount = 0;
     private boolean enemyDefenseWeakened = false;
@@ -70,7 +76,7 @@ public class BattleEngine {
         if (random.nextDouble() < defectChance) {
             DefectType defectType = enemy.getAssociatedDefect() != null ? enemy.getAssociatedDefect() : DefectType.SINTAXIS;
             listener.onBattleLog("⚠️ ¡Alerta! Durante la codificación se inyectó un defecto: " + defectType.getName() + ".");
-            pspLog.logDefect(defectType, "Codificación", "Pendiente", 15, "Defecto detectado durante fase de desarrollo");
+            pspLog.logInjectedDefect(defectType, "Codificación", "Defecto inyectado durante la codificación");
         }
 
         checkBattleStatus();
@@ -93,11 +99,14 @@ public class BattleEngine {
         int healAmount = 25 + hero.getPspLevel().ordinal() * 6;
         hero.heal(healAmount);
 
-        // Remoción de defectos en bitácora
-        pspLog.logDefect(DefectType.CHEQUEO, "Diseño/Revisión", "Inspección PSP", 5, "Defecto prevenido mediante checklist formal");
+        // La revisión remueve defectos ya inyectados (no crea defectos nuevos)
+        int removed = pspLog.removePendingDefects(CHECKLIST_REMOVALS, "Revisión de código", 5);
 
         listener.onBattleLog("📋 Aplicas una Lista de Chequeo PSP 2: Revisión de diseño y código.");
-        listener.onBattleLog("✨ Se previenen anomalías futuras. Salud del proyecto restaurada en +" + healAmount + " HP.");
+        listener.onBattleLog(removed > 0
+                ? "🔍 La revisión encontró y corrigió " + removed + " defecto(s) pendiente(s)."
+                : "🔍 La revisión no encontró defectos pendientes: el código está limpio.");
+        listener.onBattleLog("✨ Salud del proyecto restaurada en +" + healAmount + " HP.");
 
         checkBattleStatus();
         if (!battleOver) enemyTurn();
@@ -159,8 +168,9 @@ public class BattleEngine {
             case GESTOR_CALIDAD:
                 hero.heal(20);
                 enemy.takeDamage(25);
-                pspLog.logDefect(DefectType.CHEQUEO, "Revisión Calidad", "Inspección TSP", 5, "Inspección moderada por Gestor de Calidad");
+                int found = pspLog.removePendingDefects(PEER_REVIEW_REMOVALS, "Inspección TSP", 5);
                 listener.onBattleLog("🛡️ El Gestor de Calidad modera una inspección por pares. Absorbe daño e inflige 25 a los bugs.");
+                if (found > 0) listener.onBattleLog("🔍 La inspección por pares corrigió " + found + " defecto(s) pendiente(s).");
                 break;
             case GESTOR_REQUERIMIENTOS:
                 listener.onBattleLog("📦 El Administrador de Requerimientos fija la línea base de configuración. Los defectos quedan contenidos.");
@@ -237,12 +247,16 @@ public class BattleEngine {
         }
 
         int rawAtk = enemy.getAttackPower() + random.nextInt(6);
+        // Los defectos sin corregir agravan las fallas en producción
+        int pending = pspLog.getPendingDefects();
+        rawAtk += pending * PENDING_DEFECT_PENALTY;
         // Reducción por madurez de procesos MoProSoft
         double defenseFactor = 1.0 - (org.getCapabilityLevel() * 0.08);
         int finalDamage = Math.max(3, (int)(rawAtk * defenseFactor));
 
         hero.takeDamage(finalDamage);
-        listener.onBattleLog("👾 " + enemy.getName() + " contraataca con [" + enemy.getSubtitle() + "] causando " + finalDamage + " de daño.");
+        listener.onBattleLog("👾 " + enemy.getName() + " contraataca con [" + enemy.getSubtitle() + "] causando " + finalDamage + " de daño"
+                + (pending > 0 ? " (agravado por " + pending + " defecto(s) pendiente(s))." : "."));
 
         // Registrar tiempo invertido en la bitácora PSP
         LocalDateTime now = LocalDateTime.now();

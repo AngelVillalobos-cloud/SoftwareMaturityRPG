@@ -16,6 +16,8 @@ public class PSPLog {
     private final List<DefectLogEntry> defectLogs = new ArrayList<>();
     private int nextDefectId = 1;
 
+    public static final String PENDING_PHASE = "Pendiente";
+
     // Métricas acumuladas del proyecto
     private int estimatedLOC = 100;
     private int actualLOC = 100;
@@ -25,9 +27,49 @@ public class PSPLog {
         timeLogs.add(entry);
     }
 
+    /** Registra un defecto encontrado y corregido en el mismo momento. */
     public void logDefect(DefectType type, String phaseInjected, String phaseRemoved,
                           int fixMinutes, String description) {
         defectLogs.add(new DefectLogEntry(nextDefectId++, type, phaseInjected, phaseRemoved, fixMinutes, true, description));
+    }
+
+    /** Registra un defecto inyectado que aún no se ha detectado ni corregido. */
+    public void logInjectedDefect(DefectType type, String phaseInjected, String description) {
+        defectLogs.add(new DefectLogEntry(nextDefectId++, type, phaseInjected, PENDING_PHASE, 0, false, description));
+    }
+
+    /**
+     * Una revisión remueve hasta {@code max} defectos pendientes (los más antiguos primero).
+     * @return cuántos defectos se removieron
+     */
+    public int removePendingDefects(int max, String phaseRemoved, int fixMinutesEach) {
+        int removed = 0;
+        for (DefectLogEntry d : defectLogs) {
+            if (removed >= max) break;
+            if (!d.isFixed()) {
+                d.markRemoved(phaseRemoved, fixMinutesEach);
+                removed++;
+            }
+        }
+        return removed;
+    }
+
+    public int getPendingDefects() {
+        return (int) defectLogs.stream().filter(d -> !d.isFixed()).count();
+    }
+
+    public int getRemovedDefects() {
+        return getTotalDefects() - getPendingDefects();
+    }
+
+    /**
+     * Yield del proceso (PSP): porcentaje de defectos removidos antes de la entrega.
+     * Sin defectos registrados el yield es 100%.
+     */
+    public double calculateYield() {
+        int total = getTotalDefects();
+        if (total == 0) return 100.0;
+        return 100.0 * getRemovedDefects() / total;
     }
 
     public List<TimeLogEntry> getTimeLogs() {
