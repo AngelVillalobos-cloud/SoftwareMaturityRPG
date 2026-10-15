@@ -172,6 +172,11 @@ public class PSPLog {
 
     public String getProjectName() { return projectName; }
 
+    /** Agrega un resumen al historial (usado al cargar una partida guardada). */
+    public void addToHistory(ProjectSummary summary) {
+        history.add(summary);
+    }
+
     /** Cierra el proyecto actual y archiva su resumen Post-Mortem en el historial. */
     public ProjectSummary closeProject(boolean delivered) {
         ProjectSummary summary = new ProjectSummary(projectName, delivered, estimatedLOC, actualLOC,

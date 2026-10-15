@@ -90,6 +90,20 @@ public class Hero {
         return false;
     }
 
+    /** Restaura las estadísticas numéricas al cargar una partida guardada. */
+    public void restoreState(int hp, int maxHp, int mp, int maxMp, int level, int xp, int gold,
+                             int checklists, int designTemplates) {
+        this.maxHp = maxHp;
+        this.hp = Math.min(hp, maxHp);
+        this.maxMp = maxMp;
+        this.mp = Math.min(mp, maxMp);
+        this.level = level;
+        this.xp = xp;
+        this.gold = gold;
+        this.checklists = checklists;
+        this.designTemplates = designTemplates;
+    }
+
     public void rest() {
         this.hp = maxHp;
         this.mp = maxMp;

@@ -93,6 +93,17 @@ public class MoProSoftOrg {
         return false;
     }
 
+    /** Restaura el estado de la organización al cargar una partida guardada. */
+    public void restoreState(int capabilityLevel, int budget, int humanResourcesLevel,
+                             int infrastructureLevel, int knowledgeBaseLevel, int processPoints) {
+        this.capabilityLevel = capabilityLevel;
+        this.budget = budget;
+        this.humanResourcesLevel = humanResourcesLevel;
+        this.infrastructureLevel = infrastructureLevel;
+        this.knowledgeBaseLevel = knowledgeBaseLevel;
+        this.processPoints = processPoints;
+    }
+
     // Getters y Setters
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }

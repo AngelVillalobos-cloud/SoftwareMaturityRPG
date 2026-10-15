@@ -2,6 +2,7 @@ package com.softwarerpg.ui;
 
 import com.softwarerpg.engine.BattleEngine;
 import com.softwarerpg.engine.GameEngine;
+import com.softwarerpg.engine.SaveManager;
 import com.softwarerpg.model.CMMILevel;
 import com.softwarerpg.model.Enemy;
 import com.softwarerpg.model.Hero;
@@ -46,6 +47,7 @@ public class GameMainWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         initUI();
+        setJMenuBar(createMenuBar());
         updateHeader();
     }
 
@@ -202,6 +204,9 @@ public class GameMainWindow extends JFrame {
         // Al terminar cualquier combate el equipo hace una retrospectiva y recupera HP/MP
         hero.rest();
         updateAll();
+        if (autoSave()) {
+            msg.insert(msg.lastIndexOf("</body>"), "<br><i>💾 Partida guardada automáticamente.</i>");
+        }
 
         String back = "🗺️ Volver a la Campaña";
         Object[] options = victory ? new Object[]{back} : new Object[]{"🔁 Reintentar", back};
@@ -228,6 +233,93 @@ public class GameMainWindow extends JFrame {
                 log.getEstimatedLOC(), log.getActualLOC(), log.getSizeEstimationErrorPercent(),
                 log.getEstimatedMinutes(), log.getTotalTimeMinutes(), log.getTimeEstimationErrorPercent(),
                 log.getTotalDefects(), log.getPendingDefects(), log.calculateDefectDensity(), log.calculateYield());
+    }
+
+    // ------------------------------------------------------------------ Guardado y carga
+
+    private JMenuBar createMenuBar() {
+        JMenuBar bar = new JMenuBar();
+        JMenu menu = new JMenu("🎮 Partida");
+        menu.setFont(Theme.FONT_BOLD);
+
+        JMenuItem save = new JMenuItem("💾 Guardar partida");
+        save.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        save.addActionListener(e -> saveGame());
+
+        JMenuItem load = new JMenuItem("📂 Cargar partida guardada");
+        load.addActionListener(e -> loadGame());
+
+        JMenuItem newGame = new JMenuItem("🆕 Nueva partida");
+        newGame.addActionListener(e -> newGame());
+
+        menu.add(save);
+        menu.add(load);
+        menu.addSeparator();
+        menu.add(newGame);
+        bar.add(menu);
+        return bar;
+    }
+
+    /** Guarda en silencio al terminar un combate. @return true si se guardó. */
+    private boolean autoSave() {
+        try {
+            SaveManager.save(gameEngine, SaveManager.defaultSavePath());
+            return true;
+        } catch (Exception e) {
+            System.err.println("No se pudo autoguardar la partida: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void saveGame() {
+        if (gameEngine.isBattleInProgress()) {
+            JOptionPane.showMessageDialog(this,
+                "Termina el combate actual antes de guardar.\n(La partida también se guarda sola al terminar cada combate.)",
+                "Combate en curso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        try {
+            SaveManager.save(gameEngine, SaveManager.defaultSavePath());
+            JOptionPane.showMessageDialog(this, "💾 Partida guardada en:\n" + SaveManager.defaultSavePath(),
+                "Partida guardada", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "No se pudo guardar la partida:\n" + e.getMessage(),
+                "Error al guardar", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadGame() {
+        if (!SaveManager.hasSave(SaveManager.defaultSavePath())) {
+            JOptionPane.showMessageDialog(this, "Todavía no hay ninguna partida guardada.",
+                "Sin partida guardada", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (!confirmDiscard("cargar la partida guardada")) return;
+        try {
+            replaceWindow(SaveManager.load(SaveManager.defaultSavePath()));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "No se pudo cargar la partida:\n" + e.getMessage(),
+                "Error al cargar", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void newGame() {
+        if (!confirmDiscard("empezar una partida nueva")) return;
+        replaceWindow(com.softwarerpg.Main.askNewGame());
+    }
+
+    private boolean confirmDiscard(String action) {
+        int r = JOptionPane.showConfirmDialog(this,
+            "Se perderá el progreso que no esté guardado.\n¿Seguro que quieres " + action + "?",
+            "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        return r == JOptionPane.YES_OPTION;
+    }
+
+    /** Abre una ventana nueva con el motor indicado y cierra la actual. */
+    private void replaceWindow(GameEngine engine) {
+        GameMainWindow window = new GameMainWindow(engine);
+        window.setVisible(true);
+        dispose();
     }
 
     private JLabel createBadge(String text, Color color) {
