@@ -27,6 +27,9 @@ public class BattleEngine {
     static final int PEER_REVIEW_REMOVALS = 2;
     /** Daño extra del enemigo por cada defecto inyectado que siga sin corregir. */
     static final int PENDING_DEFECT_PENALTY = 2;
+    /** Control Estadístico: daño base + bonificación proporcional al yield (máx. 100). */
+    static final int STAT_BASE_DAMAGE = 60;
+    static final int STAT_YIELD_BONUS = 40;
 
     private boolean battleOver = false;
     private int turnCount = 0;
@@ -217,10 +220,12 @@ public class BattleEngine {
             return;
         }
 
-        int statDamage = 60 + (int)(pspLog.calculateDefectDensity() * 2);
+        // Un proceso bajo control (yield alto: defectos removidos a tiempo) produce un golpe más certero
+        double yield = pspLog.calculateYield();
+        int statDamage = STAT_BASE_DAMAGE + (int) Math.round(STAT_YIELD_BONUS * yield / 100.0);
         enemy.takeDamage(statDamage);
         logTime("Análisis cuantitativo", 10, "Control estadístico de subprocesos (CMMI 4)");
-        listener.onBattleLog("📊 ¡Control Cuantitativo CMMI-4! Aplicas técnicas estadísticas a los subprocesos.");
+        listener.onBattleLog(String.format("📊 ¡Control Cuantitativo CMMI-4! Yield del proceso: %.0f%%.", yield));
         listener.onBattleLog("💥 Erradicas causas especiales de variación e infliges " + statDamage + " de daño certero.");
 
         checkBattleStatus();

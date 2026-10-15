@@ -242,7 +242,7 @@ public class BattlePanel extends JPanel {
         btnSynergy.setText("🤝 Sinergia TSP · " + COST_SYNERGY + " MP");
         btnSynergy.setToolTipText("Pide ayuda a un rol de tu equipo TSP (elige en el menú).");
         btnStatControl.setText(cmmi >= 4 ? "📊 Control Estadístico · " + COST_STAT + " MP" : "🔒 Control Estadístico (requiere CMMI 4)");
-        btnStatControl.setToolTipText("CMMI 4: ataque certero basado en control estadístico de tus procesos.");
+        btnStatControl.setToolTipText("CMMI 4: daño de 60 a 100 según el yield de tu proceso (% de defectos ya corregidos).");
         btnContinuous.setText(cmmi >= 5 ? "🚀 Mejora Continua · " + COST_CONTINUOUS + " MP" : "🔒 Mejora Continua (requiere CMMI 5)");
         btnContinuous.setToolTipText("CMMI 5: +50 HP y regeneras +15 HP durante 3 turnos.");
     }
