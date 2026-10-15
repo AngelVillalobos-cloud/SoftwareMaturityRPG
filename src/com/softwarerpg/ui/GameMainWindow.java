@@ -1,6 +1,9 @@
 package com.softwarerpg.ui;
 
+import com.softwarerpg.engine.BattleEngine;
 import com.softwarerpg.engine.GameEngine;
+import com.softwarerpg.model.CMMILevel;
+import com.softwarerpg.model.Enemy;
 import com.softwarerpg.model.Hero;
 
 import javax.swing.*;
@@ -30,6 +33,8 @@ public class GameMainWindow extends JFrame {
     private TSPTeamPanel tspTeamPanel;
     private MoProSoftPanel moProSoftPanel;
     private CodexPanel codexPanel;
+
+    private CMMILevel cmmiAtBattleStart;
 
     public GameMainWindow(GameEngine engine) {
         this.gameEngine = engine;
@@ -120,7 +125,8 @@ public class GameMainWindow extends JFrame {
         mainTabs = new JTabbedPane();
         Theme.applyDarkTabbedPane(mainTabs);
 
-        missionsPanel = new MissionsPanel(gameEngine, this::updateAll, mainTabs::setSelectedIndex);
+        missionsPanel = new MissionsPanel(gameEngine, this::updateAll, mainTabs::setSelectedIndex,
+                createBattleListener(), this::onBattleStarting);
         battlePanel = new BattlePanel(gameEngine, this::updateAll);
         pspLogPanel = new PSPLogPanel(gameEngine, this::updateAll);
         tspTeamPanel = new TSPTeamPanel(gameEngine, this::updateAll);
@@ -137,6 +143,71 @@ public class GameMainWindow extends JFrame {
         rootPanel.add(mainTabs, BorderLayout.CENTER);
 
         setContentPane(rootPanel);
+    }
+
+    /** Conecta los eventos del motor de combate con la consola y el letrero de resultado. */
+    private BattleEngine.BattleListener createBattleListener() {
+        return new BattleEngine.BattleListener() {
+            @Override
+            public void onBattleLog(String message) {
+                battlePanel.logMessage(message);
+            }
+
+            @Override
+            public void onBattleEnded(boolean victory) {
+                // Se difiere para que la UI muestre primero el estado final del combate
+                SwingUtilities.invokeLater(() -> showBattleResult(victory));
+            }
+        };
+    }
+
+    private void onBattleStarting() {
+        battlePanel.clearLog();
+        cmmiAtBattleStart = gameEngine.getHero().getCmmiLevel();
+    }
+
+    private void showBattleResult(boolean victory) {
+        updateAll();
+        BattleEngine battle = gameEngine.getCurrentBattle();
+        Enemy enemy = battle.getEnemy();
+        Hero hero = gameEngine.getHero();
+
+        StringBuilder msg = new StringBuilder("<html><body style='width: 340px;'>");
+        if (victory) {
+            msg.append("<h2 style='color:#4ADE80;'>🎉 ¡VICTORIA!</h2>")
+               .append("Derrotaste a <b>").append(enemy.getName()).append("</b> en ")
+               .append(battle.getTurnCount()).append(" turnos.<br><br>")
+               .append("⭐ Recompensas: <b>+").append(enemy.getXpReward()).append(" XP</b> y <b>+")
+               .append(enemy.getGoldReward()).append(" Oro</b>.");
+            if (cmmiAtBattleStart != null && hero.getCmmiLevel() != cmmiAtBattleStart) {
+                msg.append("<br><br>🏆 ¡Tu organización ascendió a <b>CMMI ")
+                   .append(hero.getCmmiLevel().getName()).append("</b>!");
+            }
+        } else {
+            msg.append("<h2 style='color:#F87171;'>💀 ¡PERDISTE!</h2>")
+               .append("El proyecto colapsó ante <b>").append(enemy.getName()).append("</b>.<br><br>")
+               .append("💡 Consejo: usa la <b>Checklist PSP</b> o la <b>Sinergia del Líder</b> cuando tu salud baje, ")
+               .append("y compra checklists en la Campaña antes de volver a intentarlo.");
+        }
+        msg.append("<br><br><i>Retrospectiva del equipo: salud y disciplina restauradas.</i></body></html>");
+
+        // Al terminar cualquier combate el equipo hace una retrospectiva y recupera HP/MP
+        hero.rest();
+        updateAll();
+
+        String back = "🗺️ Volver a la Campaña";
+        Object[] options = victory ? new Object[]{back} : new Object[]{"🔁 Reintentar", back};
+        int choice = JOptionPane.showOptionDialog(this, msg.toString(),
+                victory ? "Proyecto entregado" : "Proyecto fallido",
+                JOptionPane.DEFAULT_OPTION,
+                victory ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE,
+                null, options, options[0]);
+
+        if (!victory && choice == 0) {
+            missionsPanel.retryLast();
+        } else {
+            mainTabs.setSelectedIndex(0);
+        }
     }
 
     private JLabel createBadge(String text, Color color) {

@@ -45,6 +45,7 @@ public class BattleEngine {
     public boolean isBattleOver() { return battleOver; }
     public Hero getHero() { return hero; }
     public Enemy getEnemy() { return enemy; }
+    public int getTurnCount() { return turnCount; }
 
     /**
      * Acción 1: Codificación / Ataque directo

@@ -19,13 +19,19 @@ public class MissionsPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
     private final java.util.function.Consumer<Integer> tabSwitcher;
+    private final BattleEngine.BattleListener battleListener;
+    private final Runnable onBattleStarting;
 
     private JPanel missionsListPanel;
+    private Runnable lastLaunch; // Último combate desplegado (para "Reintentar")
 
-    public MissionsPanel(GameEngine gameEngine, Runnable onStateUpdated, java.util.function.Consumer<Integer> tabSwitcher) {
+    public MissionsPanel(GameEngine gameEngine, Runnable onStateUpdated, java.util.function.Consumer<Integer> tabSwitcher,
+                         BattleEngine.BattleListener battleListener, Runnable onBattleStarting) {
         this.gameEngine = gameEngine;
         this.onStateUpdated = onStateUpdated;
         this.tabSwitcher = tabSwitcher;
+        this.battleListener = battleListener;
+        this.onBattleStarting = onBattleStarting;
 
         setLayout(new BorderLayout(10, 10));
         setBackground(Theme.BG_DARK);
@@ -145,35 +151,25 @@ public class MissionsPanel extends JPanel {
     }
 
     private void launchMission(Mission mission) {
-        gameEngine.startMission(mission, new BattleEngine.BattleListener() {
-            @Override
-            public void onBattleLog(String message) {
-                // El battle panel se actualizará a través del engine
-            }
-
-            @Override
-            public void onBattleEnded(boolean victory) {
-                refreshMissions();
-                onStateUpdated.run();
-            }
-        });
-
+        lastLaunch = () -> launchMission(mission);
+        onBattleStarting.run();
+        gameEngine.startMission(mission, battleListener);
         tabSwitcher.accept(1); // Cambiar a pestaña de combate (index 1)
         onStateUpdated.run();
     }
 
     private void startQuickBattle() {
+        lastLaunch = this::startQuickBattle;
+        onBattleStarting.run();
         int stage = gameEngine.getHero().getCmmiLevel().getLevelNumber();
-        gameEngine.startRandomPracticeBattle(stage, new BattleEngine.BattleListener() {
-            @Override
-            public void onBattleLog(String message) {}
-            @Override
-            public void onBattleEnded(boolean victory) {
-                onStateUpdated.run();
-            }
-        });
+        gameEngine.startRandomPracticeBattle(stage, battleListener);
         tabSwitcher.accept(1);
         onStateUpdated.run();
+    }
+
+    /** Vuelve a desplegar el último combate (misión o caza rápida). */
+    public void retryLast() {
+        if (lastLaunch != null) lastLaunch.run();
     }
 }
 

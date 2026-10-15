@@ -69,6 +69,7 @@ public class GameEngine {
 
     public void startRandomPracticeBattle(int stage, BattleEngine.BattleListener listener) {
         Enemy enemy = GameData.createRandomBug(stage);
+        this.activeMission = null;
         this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener);
     }
 

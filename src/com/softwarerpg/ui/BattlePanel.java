@@ -203,6 +203,10 @@ public class BattlePanel extends JPanel {
         battleLogArea.setCaretPosition(battleLogArea.getDocument().getLength());
     }
 
+    public void clearLog() {
+        battleLogArea.setText("");
+    }
+
     public void updateBattleUI() {
         Hero hero = gameEngine.getHero();
         heroHpBar.setMaximum(hero.getMaxHp());
