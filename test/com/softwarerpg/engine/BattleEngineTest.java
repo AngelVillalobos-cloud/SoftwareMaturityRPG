@@ -101,6 +101,26 @@ class BattleEngineTest {
     }
 
     @Test
+    void cadaChecklistExtraEnElMismoProyectoCuraMenos() {
+        BattleEngine b = battle(enemy(5000), new FixedRandom(0.5));
+        hero.addChecklists(3);
+
+        hero.takeDamage(80); int before = hero.getHp(); b.actionInspectCode();
+        int firstHeal = hero.getHp() - before + 18;   // + el contraataque de ese turno (18)
+        hero.rest(); hero.takeDamage(60); before = hero.getHp(); b.actionInspectCode();
+        int secondHeal = hero.getHp() - before + 18;
+
+        assertEquals(25, firstHeal, "PSP 0: curación base completa");
+        assertEquals(12, secondHeal, "la segunda revisión cura la mitad");
+    }
+
+    @Test
+    void elInventarioDeChecklistsTieneTope() {
+        hero.addChecklists(100);
+        assertEquals(Hero.MAX_CHECKLISTS, hero.getChecklists());
+    }
+
+    @Test
     void laChecklistSinDefectosPendientesNoRegistraNada() {
         BattleEngine b = battle(enemy(500), new FixedRandom(0.5));
 

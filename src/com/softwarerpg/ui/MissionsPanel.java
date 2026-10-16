@@ -2,6 +2,7 @@ package com.softwarerpg.ui;
 
 import com.softwarerpg.engine.BattleEngine;
 import com.softwarerpg.engine.GameEngine;
+import com.softwarerpg.model.Hero;
 import com.softwarerpg.model.Mission;
 
 import javax.swing.*;
@@ -24,6 +25,7 @@ public final class MissionsPanel extends JPanel {
     private final Runnable onBattleStarting;
 
     private JPanel missionsListPanel;
+    private JButton btnQuickBug;
     private Runnable lastLaunch; // Último combate desplegado (para "Reintentar")
 
     public MissionsPanel(GameEngine gameEngine, Runnable onStateUpdated, java.util.function.Consumer<Integer> tabSwitcher,
@@ -61,9 +63,13 @@ public final class MissionsPanel extends JPanel {
         JPanel storePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         storePanel.setOpaque(false);
 
-        JButton btnBuyChecklist = Theme.createStyledButton("🛒 Comprar Checklist (60 Oro)", Theme.ACCENT_GREEN);
+        JButton btnBuyChecklist = Theme.createStyledButton("🛒 Comprar Checklist (" + GameEngine.CHECKLIST_COST + " Oro)", Theme.ACCENT_GREEN);
+        btnBuyChecklist.setToolTipText("Máximo " + Hero.MAX_CHECKLISTS + " en el inventario. En combate, cada revisión extra del mismo proyecto cura menos.");
         btnBuyChecklist.addActionListener(e -> {
-            if (gameEngine.buyChecklist()) {
+            if (gameEngine.getHero().getChecklists() >= Hero.MAX_CHECKLISTS) {
+                Sound.play(Sound.Sfx.ERROR);
+                JOptionPane.showMessageDialog(this, "Ya tienes el máximo de " + Hero.MAX_CHECKLISTS + " checklists.", "Inventario lleno", JOptionPane.WARNING_MESSAGE);
+            } else if (gameEngine.buyChecklist()) {
                 Sound.play(Sound.Sfx.COIN);
                 JOptionPane.showMessageDialog(this, "¡Checklist PSP adquirida! Lista para prevenir defectos en combate.", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
                 onStateUpdated.run();
@@ -73,7 +79,7 @@ public final class MissionsPanel extends JPanel {
             }
         });
 
-        JButton btnBuyTemplate = Theme.createStyledButton("📐 Comprar Plantilla Diseño (120 Oro)", Theme.ACCENT_PURPLE);
+        JButton btnBuyTemplate = Theme.createStyledButton("📐 Comprar Plantilla Diseño (" + GameEngine.TEMPLATE_COST + " Oro)", Theme.ACCENT_PURPLE);
         btnBuyTemplate.setToolTipText("Se usa al hacer Estimación LOC en combate: las próximas 3 codificaciones no inyectan defectos.");
         btnBuyTemplate.addActionListener(e -> {
             if (gameEngine.buyDesignTemplate()) {
@@ -88,7 +94,8 @@ public final class MissionsPanel extends JPanel {
 
         for (JButton b : new JButton[]{btnBuyChecklist, btnBuyTemplate}) b.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
 
-        JButton btnQuickBug = Theme.createStyledButton("👾 Caza Rápida de Bugs", Theme.ACCENT_AMBER);
+        btnQuickBug = Theme.createStyledButton("👾 Caza Rápida de Bugs", Theme.ACCENT_AMBER);
+        btnQuickBug.setToolTipText("Combate de práctica. Cada caza paga la mitad que la anterior; se renueva al completar una misión nueva.");
         btnQuickBug.addActionListener(e -> startQuickBattle());
 
         storePanel.add(btnBuyChecklist);
@@ -114,6 +121,7 @@ public final class MissionsPanel extends JPanel {
     }
 
     public void refreshMissions() {
+        btnQuickBug.setText("👾 Caza Rápida (recompensa " + Math.round(gameEngine.getPracticeRewardMultiplier() * 100) + "%)");
         missionsListPanel.removeAll();
         List<Mission> list = gameEngine.getMissions();
 
@@ -155,7 +163,8 @@ public final class MissionsPanel extends JPanel {
             JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 20));
             rightPanel.setOpaque(false);
 
-            String launchText = mission.isCompleted() ? "🔄 Repetir Proyecto"
+            String launchText = mission.isCompleted()
+                    ? "🔄 Repetir (recompensa " + Math.round(GameEngine.REPEAT_MISSION_REWARD * 100) + "%)"
                     : locked ? "🔒 Bloqueada" : "🚀 Desplegar Proyecto";
             JButton btnLaunch = Theme.createStyledButton(launchText, next ? Theme.ACCENT_AMBER : Theme.ACCENT_CYAN);
             btnLaunch.setEnabled(!locked);

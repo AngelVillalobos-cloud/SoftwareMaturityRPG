@@ -26,6 +26,9 @@ public class Hero {
     private int designTemplates;  // Plantillas de diseño PSP 2.1
     private final List<String> pipIdeas = new ArrayList<>(); // Plan de Mejora Personal (PIP)
 
+    /** Máximo de checklists en el inventario. */
+    public static final int MAX_CHECKLISTS = 5;
+
     public Hero(String name) {
         this.name = name;
         this.maxHp = 100;
@@ -126,7 +129,7 @@ public class Hero {
     public CMMILevel getCmmiLevel() { return cmmiLevel; }
     public void setCmmiLevel(CMMILevel cmmiLevel) { this.cmmiLevel = cmmiLevel; }
     public int getChecklists() { return checklists; }
-    public void addChecklists(int qty) { this.checklists += qty; }
+    public void addChecklists(int qty) { this.checklists = Math.min(MAX_CHECKLISTS, this.checklists + qty); }
     public void useChecklist() { if (checklists > 0) checklists--; }
     public int getDesignTemplates() { return designTemplates; }
     public void addDesignTemplates(int qty) { this.designTemplates += qty; }

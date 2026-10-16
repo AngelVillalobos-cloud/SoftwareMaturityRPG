@@ -188,8 +188,10 @@ public final class GameMainWindow extends JFrame {
             msg.append("<h2 style='color:#4ADE80;'>🎉 ¡VICTORIA!</h2>")
                .append("Derrotaste a <b>").append(enemy.getName()).append("</b> en ")
                .append(battle.getTurnCount()).append(" turnos.<br><br>")
-               .append("⭐ Recompensas: <b>+").append(enemy.getXpReward()).append(" XP</b> y <b>+")
-               .append(enemy.getGoldReward()).append(" Oro</b>.<br><br>")
+               .append("⭐ Recompensas: <b>+").append(battle.getXpEarned()).append(" XP</b> y <b>+")
+               .append(battle.getGoldEarned()).append(" Oro</b>")
+               .append(battle.getXpEarned() < enemy.getXpReward() ? " <i>(recompensa reducida: proyecto repetido o caza rápida)</i>" : "")
+               .append(".<br><br>")
                .append(postMortemSummary());
             if (cmmiAtBattleStart != null && hero.getCmmiLevel() != cmmiAtBattleStart) {
                 msg.append("<br><br>🏆 ¡Tu organización ascendió a <b>CMMI ")

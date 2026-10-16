@@ -24,6 +24,9 @@ public class BattleEngine {
 
     /** Defectos pendientes que remueve una checklist PSP y una inspección por pares TSP. */
     static final int CHECKLIST_REMOVALS = 3;
+    /** Curación de la checklist: base + extra por nivel PSP, dividida entre las revisiones ya hechas. */
+    static final int CHECKLIST_BASE_HEAL = 25;
+    static final int CHECKLIST_HEAL_PER_PSP = 6;
     static final int PEER_REVIEW_REMOVALS = 2;
     /** Daño extra del enemigo por cada defecto inyectado que siga sin corregir. */
     static final int PENDING_DEFECT_PENALTY = 2;
@@ -44,6 +47,10 @@ public class BattleEngine {
     private int configBaselineTurns = 0;        // Codificaciones protegidas por la línea base de configuración
     private boolean halveNextEnemyAttack = false;
     private int designTemplateCodings = 0;      // Codificaciones guiadas por una plantilla de diseño PSP 2.1
+    private int checklistsUsed = 0;             // Revisiones hechas en este proyecto (rendimiento decreciente)
+    private double rewardMultiplier = 1.0;      // Recompensas reducidas al farmear o repetir proyectos
+    private int xpEarned = 0;
+    private int goldEarned = 0;
 
     public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
                         java.util.List<TeamMember> team, BattleListener listener) {
@@ -78,6 +85,13 @@ public class BattleEngine {
     public Hero getHero() { return hero; }
     public Enemy getEnemy() { return enemy; }
     public int getTurnCount() { return turnCount; }
+    public int getXpEarned() { return xpEarned; }
+    public int getGoldEarned() { return goldEarned; }
+
+    /** Fracción de las recompensas que se otorgan al ganar (1.0 = completas). */
+    public void setRewardMultiplier(double multiplier) {
+        this.rewardMultiplier = Math.max(0, Math.min(1, multiplier));
+    }
 
     /**
      * Acción 1: Codificación / Ataque directo
@@ -128,7 +142,11 @@ public class BattleEngine {
         }
 
         hero.useChecklist();
-        int healAmount = 25 + hero.getPspLevel().ordinal() * 6;
+        // Rendimiento decreciente: cada revisión adicional del mismo producto encuentra menos
+        // (la 1a cura completo, la 2a la mitad, la 3a un tercio...).
+        int baseHeal = CHECKLIST_BASE_HEAL + hero.getPspLevel().ordinal() * CHECKLIST_HEAL_PER_PSP;
+        int healAmount = baseHeal / (1 + checklistsUsed);
+        checklistsUsed++;
         hero.heal(healAmount);
 
         // La revisión remueve defectos ya inyectados (no crea defectos nuevos)
@@ -139,7 +157,8 @@ public class BattleEngine {
         listener.onBattleLog(removed > 0
                 ? "🔍 La revisión encontró y corrigió " + removed + " defecto(s) pendiente(s)."
                 : "🔍 La revisión no encontró defectos pendientes: el código está limpio.");
-        listener.onBattleLog("✨ Salud del proyecto restaurada en +" + healAmount + " HP.");
+        listener.onBattleLog("✨ Salud del proyecto restaurada en +" + healAmount + " HP"
+                + (checklistsUsed > 1 ? " (revisión nº " + checklistsUsed + ": cada revisión extra rinde menos)." : "."));
 
         checkBattleStatus();
         if (!battleOver) enemyTurn();
@@ -350,12 +369,15 @@ public class BattleEngine {
         if (enemy.isDefeated()) {
             battleOver = true;
             listener.onBattleLog("🎉 ¡VICTORIA! Has derrotado a " + enemy.getName() + ".");
-            listener.onBattleLog("⭐ Recompensas obtenidas: +" + enemy.getXpReward() + " XP, +" + enemy.getGoldReward() + " Oro.");
+            xpEarned = (int) Math.round(enemy.getXpReward() * rewardMultiplier);
+            goldEarned = (int) Math.round(enemy.getGoldReward() * rewardMultiplier);
+            listener.onBattleLog("⭐ Recompensas obtenidas: +" + xpEarned + " XP, +" + goldEarned + " Oro"
+                    + (rewardMultiplier < 1 ? " (" + Math.round(rewardMultiplier * 100) + "% de la recompensa completa)." : "."));
 
-            hero.addXp(enemy.getXpReward());
-            hero.addGold(enemy.getGoldReward());
-            org.addBudget(enemy.getGoldReward() / 2);
-            org.addProcessPoints(30);
+            hero.addXp(xpEarned);
+            hero.addGold(goldEarned);
+            org.addBudget(goldEarned / 2);
+            org.addProcessPoints((int) Math.round(30 * rewardMultiplier));
 
             pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto entregado: consolidación de métricas", true);
             pspLog.closeProject(true);

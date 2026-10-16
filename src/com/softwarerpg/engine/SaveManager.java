@@ -75,6 +75,8 @@ public final class SaveManager {
             p.setProperty("team." + i + ".maxEnergy", String.valueOf(m.getMaxEnergy()));
         }
 
+        p.setProperty("practiceHunts", String.valueOf(engine.getPracticeHunts()));
+
         List<Mission> missions = engine.getMissions();
         for (int i = 0; i < missions.size(); i++) {
             p.setProperty("mission." + missions.get(i).getId() + ".completed", String.valueOf(missions.get(i).isCompleted()));
@@ -135,6 +137,8 @@ public final class SaveManager {
             team.get(i).restoreState(PSPLevel.valueOf(text(p, "team." + i + ".psp")),
                     integer(p, "team." + i + ".energy"), integer(p, "team." + i + ".maxEnergy"));
         }
+
+        engine.setPracticeHunts(Integer.parseInt(p.getProperty("practiceHunts", "0").trim()));
 
         for (Mission m : engine.getMissions()) {
             m.setCompleted(Boolean.parseBoolean(p.getProperty("mission." + m.getId() + ".completed", "false")));

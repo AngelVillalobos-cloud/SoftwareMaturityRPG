@@ -82,10 +82,16 @@ java -cp bin com.softwarerpg.Main
 3. Al terminar aparece el letrero de **¡VICTORIA!** o **¡PERDISTE!** con el resumen Post-Mortem PSP (tamaño y tiempo estimado vs. real, defectos, Dd y yield). En derrota puedes reintentar.
 4. Con el oro compra checklists y plantillas, mejora tu organización (MoProSoft) y entrena a tu equipo (TSP).
 
+La campaña tiene **10 misiones** (dos por nivel CMMI: una intermedia y el jefe que te asciende). El oro es escaso a propósito:
+
+- Repetir una misión ya completada paga el **25%**; cada *Caza Rápida* paga la mitad que la anterior (se renueva al completar una misión nueva) y sus bugs escalan con tu nivel.
+- Máximo **5 checklists** en el inventario; dentro de un mismo combate cada revisión extra cura menos.
+- Entrenar al equipo TSP cuesta más en cada nivel.
+
 ## 💾 Partidas guardadas
 
 La partida se guarda sola al terminar cada combate y también desde el menú **Partida → Guardar** (Ctrl+S). Al abrir el juego se ofrece continuar la partida guardada. El archivo está en `%USERPROFILE%\.software-maturity-rpg\partida.properties` (Windows) o `~/.software-maturity-rpg/partida.properties` (Linux/macOS).
 
 ## 🧪 Pruebas
 
-`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 300 campañas completas: verifica que un jugador que aplica el proceso (checklists, estimación, TSP, CMMI) gane las misiones 3 a 5 entre 55% y 95% al primer intento, y que un jugador que solo codifica no pase de la misión 3. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.
+`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 200 campañas completas de las 10 misiones con tres perfiles: un jugador que aplica el proceso (checklists, estimación, TSP, CMMI) gana las misiones 3 a 10 entre 50% y 90% al primer intento; uno que solo codifica no pasa de la misión 4; y uno que "farmea" oro con cazas rápidas no puede aplanar las misiones finales. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.

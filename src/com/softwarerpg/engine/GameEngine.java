@@ -19,6 +19,13 @@ public class GameEngine {
     private final Random random;
 
     private Mission activeMission;
+    private int practiceHunts = 0; // Cazas rápidas desde la última misión nueva completada
+
+    /** Precios y factores de la economía del juego. */
+    public static final int CHECKLIST_COST = 80;
+    public static final int TEMPLATE_COST = 120;
+    public static final double REPEAT_MISSION_REWARD = 0.25;
+    public static final double PRACTICE_REWARD_DECAY = 0.5;
     private BattleEngine currentBattle;
 
     public GameEngine(String heroName, String companyName) {
@@ -48,8 +55,22 @@ public class GameEngine {
         return currentBattle != null && !currentBattle.isBattleOver();
     }
 
+    /** Fracción de la recompensa de la próxima caza rápida: 100%, 50%, 25%... (mínimo 5%). */
+    public double getPracticeRewardMultiplier() {
+        return Math.max(0.05, Math.pow(PRACTICE_REWARD_DECAY, practiceHunts));
+    }
+
+    public int getPracticeHunts() { return practiceHunts; }
+    public void setPracticeHunts(int hunts) { this.practiceHunts = Math.max(0, hunts); }
+
+    /** Costo de entrenar a un miembro al siguiente nivel PSP: sube con cada nivel. */
+    public int trainingCost(TeamMember member) {
+        return 100 + 75 * member.getPspTraining().getNext().ordinal();
+    }
+
     public void startMission(Mission mission, BattleEngine.BattleListener listener) {
         this.activeMission = mission;
+        final boolean firstCompletion = !mission.isCompleted();
         mission.getBossEnemy().resetHp();
         this.pspLog.resetForNewProject(mission.getTitle(), mission.getEstimatedLoc(), mission.getEstimatedMinutes());
 
@@ -63,11 +84,13 @@ public class GameEngine {
 
                 @Override
                 public void onBattleEnded(boolean victory) {
-                    if (victory) {
+                    if (victory && firstCompletion) {
                         mission.setCompleted(true);
+                        practiceHunts = 0; // un proyecto nuevo renueva las cazas rápidas
                         org.addProcessPoints(mission.getRewardProcessPoints());
-                        // Si la misión corresponde al siguiente nivel CMMI, evaluamos ascenso
-                        if (mission.getCmmiStage() == hero.getCmmiLevel().getLevelNumber()
+                        // Vencer al jefe del nivel actual asciende a la organización en CMMI
+                        if (mission.getBossEnemy().isBoss()
+                            && mission.getCmmiStage() == hero.getCmmiLevel().getLevelNumber()
                             && hero.getCmmiLevel().getNext() != hero.getCmmiLevel()) {
                             hero.setCmmiLevel(hero.getCmmiLevel().getNext());
                             listener.onBattleLog("🏆 ¡LA ORGANIZACIÓN HA ALCANZADO EL " 
@@ -79,19 +102,22 @@ public class GameEngine {
             },
             random
         );
+        if (!firstCompletion) currentBattle.setRewardMultiplier(REPEAT_MISSION_REWARD);
     }
 
     public void startRandomPracticeBattle(int stage, BattleEngine.BattleListener listener) {
-        Enemy enemy = GameData.createRandomBug(stage);
+        Enemy enemy = GameData.createRandomBug(stage, hero.getLevel());
         this.activeMission = null;
         // Cada caza rápida es un proyecto pequeño con su propio tamaño estimado
         this.pspLog.resetForNewProject("Caza rápida: " + enemy.getName(), 30 + stage * 30, 30 + stage * 20);
         this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, listener, random);
+        this.currentBattle.setRewardMultiplier(getPracticeRewardMultiplier());
+        practiceHunts++;
     }
 
     public boolean buyChecklist() {
-        int cost = 60;
-        if (hero.getGold() >= cost) {
+        int cost = CHECKLIST_COST;
+        if (hero.getGold() >= cost && hero.getChecklists() < Hero.MAX_CHECKLISTS) {
             hero.spendGold(cost);
             hero.addChecklists(1);
             return true;
@@ -100,7 +126,7 @@ public class GameEngine {
     }
 
     public boolean buyDesignTemplate() {
-        int cost = 120;
+        int cost = TEMPLATE_COST;
         if (hero.getGold() >= cost) {
             hero.spendGold(cost);
             hero.addDesignTemplates(1);
@@ -121,8 +147,9 @@ public class GameEngine {
     }
 
     public boolean trainTeamMemberPSP(TeamMember member) {
-        int cost = 150;
-        if (hero.getGold() >= cost && member.getPspTraining().getNext() != member.getPspTraining()) {
+        if (member.getPspTraining().getNext() == member.getPspTraining()) return false;
+        int cost = trainingCost(member);
+        if (hero.getGold() >= cost) {
             hero.spendGold(cost);
             member.upgradePsp();
             org.addProcessPoints(35);
