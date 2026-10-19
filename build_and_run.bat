@@ -4,11 +4,10 @@ chcp 65001 > nul
 cd /d "%~dp0"
 echo Compilando codigo fuente Java...
 if not exist bin mkdir bin
-rem Lista todos los .java (incluye paquetes nuevos sin tener que editar este script)
-dir /s /b src\*.java > "%TEMP%\softwarerpg_sources.txt"
-javac -encoding UTF-8 -d bin @"%TEMP%\softwarerpg_sources.txt"
+rem Se compila desde Main con -sourcepath: javac encuentra solo todas las clases que usa
+rem (incluye paquetes nuevos). Rutas relativas, asi funciona aunque la carpeta tenga espacios.
+javac -encoding UTF-8 -d bin -sourcepath src src\com\softwarerpg\Main.java
 set COMPILE_RESULT=%ERRORLEVEL%
-del "%TEMP%\softwarerpg_sources.txt" > nul 2>&1
 if %COMPILE_RESULT% EQU 0 (
     echo [OK] Compilacion exitosa.
     echo Iniciando el juego...
