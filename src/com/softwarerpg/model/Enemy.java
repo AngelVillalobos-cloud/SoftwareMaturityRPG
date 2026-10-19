@@ -56,5 +56,29 @@ public class Enemy {
     public void resetHp() {
         this.hp = maxHp;
     }
+
+    public String getTacticalHint() {
+        if (associatedDefect == null) return "Escribe código limpio y revisa tus artefactos con checklists.";
+        switch (associatedDefect) {
+            case SINTAXIS:
+                return "Debilidad: Erratas y formato (Tipo 20). Una 'Checklist PSP' previene sus ataques y 'Codificar' lo destruye con facilidad.";
+            case ASIGNACION:
+                return "Debilidad: Variables y límites (Tipo 40). Usa 'Estimación LOC (PSP 1)' para debilitar su armadura y recuperar MP.";
+            case INTERFAZ:
+                return "Debilidad: Formatos y llamadas E/S (Tipo 50). Apóyate en el 'Gestor de Desarrollo' o 'Requerimientos' de TSP.";
+            case CONSTRUCCION_PAQUETES:
+                return "Debilidad: Control de versiones y librerías (Tipo 30). La 'Inspección por Pares' del Gestor de Calidad TSP lo anula.";
+            case DATOS:
+                return "Debilidad: Estructuras corruptas (Tipo 70). Re-estima el tamaño (PSP 1) para anticipar desbordamientos.";
+            case FUNCION:
+                return "Debilidad: Lógica y punteros (Tipo 80). Si tienes CMMI 4 usa 'Control Estadístico' para asestar daño crítico certero.";
+            case SISTEMA:
+                return "Debilidad: Memoria y sincronización (Tipo 90). Activa 'Mejora Continua (CMMI-5)' o motivación del 'Líder TSP'.";
+            case ENTORNO:
+                return "Debilidad: Compilación y arquitectura (Tipo 100). Sinergia en equipo TSP y revisiones tempranas.";
+            default:
+                return "Mantén disciplina PSP: usa checklists para curar el proyecto y sinergias TSP para daño.";
+        }
+    }
 }
 

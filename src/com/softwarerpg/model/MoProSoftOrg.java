@@ -14,10 +14,17 @@ public class MoProSoftOrg {
     private int capabilityLevel; // 0 Incompleto, 1 Realizado, 2 Administrado, 3 Establecido, 4 Predecible, 5 Optimizado
     private int budget; // Presupuesto organizacional en monedas de oro / inversión
 
-    // Recursos de Gerencia (GER)
+    // 1) Alta Dirección (DIR) -> Gestión de Negocios
+    private int dirLevel;
+    private String strategicFocus; // Equilibrado, Calidad Total, Agilidad, Innovación
+
+    // 2) Recursos de Gerencia (GER)
     private int humanResourcesLevel; // RH
     private int infrastructureLevel; // BSI (Bienes, Servicios e Infraestructura)
     private int knowledgeBaseLevel;  // CO (Conocimiento de la Organización)
+
+    // 3) Operación (OPE) -> Administración de Proyectos y Desarrollo/Mantenimiento
+    private int opeLevel;
 
     // Puntos de proceso acumulados
     private int processPoints;
@@ -26,9 +33,12 @@ public class MoProSoftOrg {
         this.companyName = companyName;
         this.capabilityLevel = 1; // Comienza en Realizado
         this.budget = 1000;
+        this.dirLevel = 1;
+        this.strategicFocus = "Equilibrado";
         this.humanResourcesLevel = 1;
         this.infrastructureLevel = 1;
         this.knowledgeBaseLevel = 1;
+        this.opeLevel = 1;
         this.processPoints = 50;
     }
 
@@ -58,6 +68,28 @@ public class MoProSoftOrg {
         processPoints -= reqPoints;
         capabilityLevel++;
         return true;
+    }
+
+    public boolean upgradeDIR() {
+        int cost = dirLevel * 160;
+        if (budget >= cost) {
+            budget -= cost;
+            dirLevel++;
+            processPoints += 45;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean upgradeOPE() {
+        int cost = opeLevel * 160;
+        if (budget >= cost) {
+            budget -= cost;
+            opeLevel++;
+            processPoints += 45;
+            return true;
+        }
+        return false;
     }
 
     public boolean upgradeRH() {
@@ -93,12 +125,50 @@ public class MoProSoftOrg {
         return false;
     }
 
+    /** Multiplicador de presupuesto otorgado por la Alta Dirección (DIR): +15% por nivel extra. */
+    public double getBudgetMultiplier() {
+        return 1.0 + (dirLevel - 1) * 0.15;
+    }
+
+    /** Daño extra otorgado por la madurez operativa de desarrollo (OPE). */
+    public int getOperationAttackBonus() {
+        return (opeLevel - 1) * 4;
+    }
+
+    /** Factor de reducción de defectos inyectados gracias a la disciplina de Operación. */
+    public double getDefectReductionFactor() {
+        return Math.min(0.20, (opeLevel - 1) * 0.05);
+    }
+
+    /** Restaura el estado de la organización al cargar una partida guardada (compatibilidad previa). */
+    public void restoreState(int capabilityLevel, int budget, int humanResourcesLevel,
+                             int infrastructureLevel, int knowledgeBaseLevel, int processPoints) {
+        restoreState(capabilityLevel, budget, humanResourcesLevel, infrastructureLevel, knowledgeBaseLevel, processPoints, 1, 1);
+    }
+
+    public void restoreState(int capabilityLevel, int budget, int humanResourcesLevel,
+                             int infrastructureLevel, int knowledgeBaseLevel, int processPoints,
+                             int dirLevel, int opeLevel) {
+        this.capabilityLevel = capabilityLevel;
+        this.budget = budget;
+        this.humanResourcesLevel = humanResourcesLevel;
+        this.infrastructureLevel = infrastructureLevel;
+        this.knowledgeBaseLevel = knowledgeBaseLevel;
+        this.processPoints = processPoints;
+        this.dirLevel = Math.max(1, dirLevel);
+        this.opeLevel = Math.max(1, opeLevel);
+    }
+
     // Getters y Setters
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
     public int getCapabilityLevel() { return capabilityLevel; }
     public int getBudget() { return budget; }
     public void addBudget(int amount) { this.budget += amount; }
+    public int getDirLevel() { return dirLevel; }
+    public int getOpeLevel() { return opeLevel; }
+    public String getStrategicFocus() { return strategicFocus; }
+    public void setStrategicFocus(String strategicFocus) { this.strategicFocus = strategicFocus; }
     public int getHumanResourcesLevel() { return humanResourcesLevel; }
     public int getInfrastructureLevel() { return infrastructureLevel; }
     public int getKnowledgeBaseLevel() { return knowledgeBaseLevel; }

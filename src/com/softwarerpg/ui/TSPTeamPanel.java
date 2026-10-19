@@ -14,7 +14,8 @@ import java.util.List;
  * Gestión de la cuadrilla de ingenieros, asignación de los 5 roles clave,
  * entrenamiento individual en PSP y juntas de seguimiento semanal.
  */
-public class TSPTeamPanel extends JPanel {
+@SuppressWarnings("serial") // Componentes Swing: no se serializan
+public final class TSPTeamPanel extends JPanel {
     private final GameEngine gameEngine;
     private final Runnable onStateUpdated;
 
@@ -101,8 +102,11 @@ public class TSPTeamPanel extends JPanel {
             pspLabel.setFont(Theme.FONT_BOLD);
             pspLabel.setForeground(Theme.ACCENT_PURPLE);
 
-            JButton btnTrain = Theme.createStyledButton("🎓 Entrenar en " + member.getPspTraining().getNext().getCode() + " (150 Oro)", Theme.ACCENT_PURPLE);
-            btnTrain.setEnabled(member.getPspTraining().getNext() != member.getPspTraining());
+            boolean maxed = member.getPspTraining().getNext() == member.getPspTraining();
+            int cost = gameEngine.trainingCost(member);
+            JButton btnTrain = Theme.createStyledButton(maxed ? "🎓 Entrenamiento completo"
+                    : "🎓 Entrenar en " + member.getPspTraining().getNext().getCode() + " (" + cost + " Oro)", Theme.ACCENT_PURPLE);
+            btnTrain.setEnabled(!maxed);
             btnTrain.addActionListener(e -> {
                 if (gameEngine.trainTeamMemberPSP(member)) {
                     JOptionPane.showMessageDialog(this,
@@ -113,7 +117,7 @@ public class TSPTeamPanel extends JPanel {
                     onStateUpdated.run();
                 } else {
                     JOptionPane.showMessageDialog(this,
-                        "Oro insuficiente (Requiere 150 de Oro). ¡Completa misiones o vence bugs para financiar la capacitación!",
+                        "Oro insuficiente (requiere " + cost + " de oro). ¡Completa misiones para financiar la capacitación!",
                         "Fondos Insuficientes", JOptionPane.WARNING_MESSAGE);
                 }
             });
@@ -131,6 +135,12 @@ public class TSPTeamPanel extends JPanel {
     }
 
     private void holdWeeklyMeeting() {
+        if (gameEngine.isBattleInProgress()) {
+            JOptionPane.showMessageDialog(this,
+                "La junta semanal se realiza entre proyectos, no a mitad de un combate.",
+                "Combate en curso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         gameEngine.getHero().restoreMp(30);
         for (TeamMember m : gameEngine.getTeam()) {
             m.restoreEnergy(30);

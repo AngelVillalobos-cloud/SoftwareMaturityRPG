@@ -1,0 +1,5 @@
+# Los scripts de Windows necesitan saltos de línea CRLF; los de Linux/macOS, LF.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+mvnw    text eol=lf
+*.java  text

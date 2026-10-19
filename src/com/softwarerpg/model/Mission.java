@@ -15,11 +15,21 @@ public class Mission {
     private final int rewardXp;
     private final int rewardGold;
     private final int rewardProcessPoints;
+    private final String tacticalHint;
     private boolean completed;
 
     public Mission(String id, String title, String client, String description,
                    int estimatedLoc, int estimatedMinutes, int cmmiStage,
                    Enemy bossEnemy, int rewardXp, int rewardGold, int rewardProcessPoints) {
+        this(id, title, client, description, estimatedLoc, estimatedMinutes, cmmiStage,
+             bossEnemy, rewardXp, rewardGold, rewardProcessPoints,
+             "Planifica con cuidado, usa checklists de inspección y coordina con tu equipo TSP.");
+    }
+
+    public Mission(String id, String title, String client, String description,
+                   int estimatedLoc, int estimatedMinutes, int cmmiStage,
+                   Enemy bossEnemy, int rewardXp, int rewardGold, int rewardProcessPoints,
+                   String tacticalHint) {
         this.id = id;
         this.title = title;
         this.client = client;
@@ -31,6 +41,7 @@ public class Mission {
         this.rewardXp = rewardXp;
         this.rewardGold = rewardGold;
         this.rewardProcessPoints = rewardProcessPoints;
+        this.tacticalHint = tacticalHint;
         this.completed = false;
     }
 
@@ -45,6 +56,7 @@ public class Mission {
     public int getRewardXp() { return rewardXp; }
     public int getRewardGold() { return rewardGold; }
     public int getRewardProcessPoints() { return rewardProcessPoints; }
+    public String getTacticalHint() { return tacticalHint; }
     public boolean isCompleted() { return completed; }
     public void setCompleted(boolean completed) { this.completed = completed; }
 }

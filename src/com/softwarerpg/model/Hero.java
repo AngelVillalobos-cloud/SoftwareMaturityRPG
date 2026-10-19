@@ -1,5 +1,9 @@
 package com.softwarerpg.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Representa al Ingeniero de Software protagonista del RPG.
  * Maneja estadísticas, nivel PSP, nivel CMMI, disciplina y habilidades.
@@ -20,7 +24,10 @@ public class Hero {
     // Recursos de calidad adquiridos
     private int checklists;       // Listas de chequeo PSP 2
     private int designTemplates;  // Plantillas de diseño PSP 2.1
-    private int pipCount;         // Propuestas de mejora personal implementadas
+    private final List<String> pipIdeas = new ArrayList<>(); // Plan de Mejora Personal (PIP)
+
+    /** Máximo de checklists en el inventario. */
+    public static final int MAX_CHECKLISTS = 5;
 
     public Hero(String name) {
         this.name = name;
@@ -35,13 +42,12 @@ public class Hero {
         this.cmmiLevel = CMMILevel.NIVEL_1;
         this.checklists = 2;
         this.designTemplates = 1;
-        this.pipCount = 0;
     }
 
     public void addXp(int amount) {
         this.xp += amount;
-        // Subida de nivel PSP
-        if (pspLevel.getNext() != pspLevel && xp >= pspLevel.getNext().getXpRequired()) {
+        // Subida de nivel PSP (puede subir varios niveles con una recompensa grande)
+        while (pspLevel.getNext() != pspLevel && xp >= pspLevel.getNext().getXpRequired()) {
             pspLevel = pspLevel.getNext();
             maxHp += 20;
             maxMp += 15;
@@ -49,14 +55,22 @@ public class Hero {
             mp = maxMp;
         }
         // Subida de nivel general del héroe
-        int nextLevelThreshold = level * 150;
-        if (xp >= nextLevelThreshold) {
+        while (xp >= xpForLevel(level + 1)) {
             level++;
             maxHp += 25;
             maxMp += 20;
             hp = maxHp;
             mp = maxMp;
         }
+    }
+
+    /**
+     * XP acumulada necesaria para alcanzar un nivel: 70 × (n-1) × n.
+     * Nivel 2 = 140, 3 = 420, 4 = 840, 5 = 1400... Con las recompensas de la campaña
+     * se llega a la misión N con nivel N aproximadamente.
+     */
+    public static int xpForLevel(int targetLevel) {
+        return 70 * (targetLevel - 1) * targetLevel;
     }
 
     public void takeDamage(int dmg) {
@@ -77,6 +91,20 @@ public class Hero {
             return true;
         }
         return false;
+    }
+
+    /** Restaura las estadísticas numéricas al cargar una partida guardada. */
+    public void restoreState(int hp, int maxHp, int mp, int maxMp, int level, int xp, int gold,
+                             int checklists, int designTemplates) {
+        this.maxHp = maxHp;
+        this.hp = Math.min(hp, maxHp);
+        this.maxMp = maxMp;
+        this.mp = Math.min(mp, maxMp);
+        this.level = level;
+        this.xp = xp;
+        this.gold = gold;
+        this.checklists = checklists;
+        this.designTemplates = designTemplates;
     }
 
     public void rest() {
@@ -101,12 +129,13 @@ public class Hero {
     public CMMILevel getCmmiLevel() { return cmmiLevel; }
     public void setCmmiLevel(CMMILevel cmmiLevel) { this.cmmiLevel = cmmiLevel; }
     public int getChecklists() { return checklists; }
-    public void addChecklists(int qty) { this.checklists += qty; }
+    public void addChecklists(int qty) { this.checklists = Math.min(MAX_CHECKLISTS, this.checklists + qty); }
     public void useChecklist() { if (checklists > 0) checklists--; }
     public int getDesignTemplates() { return designTemplates; }
     public void addDesignTemplates(int qty) { this.designTemplates += qty; }
     public void useDesignTemplate() { if (designTemplates > 0) designTemplates--; }
-    public int getPipCount() { return pipCount; }
-    public void addPip(int count) { this.pipCount += count; }
+    public int getPipCount() { return pipIdeas.size(); }
+    public List<String> getPipIdeas() { return Collections.unmodifiableList(pipIdeas); }
+    public void addPipIdea(String idea) { pipIdeas.add(idea); }
 }
 

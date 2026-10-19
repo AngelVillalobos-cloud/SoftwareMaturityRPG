@@ -28,7 +28,7 @@ En la pestaña **Org. MoProSoft** gestionas la estructura empresarial en sus **3
 El protagonista sigue la metodología y disciplina del ingeniero individual:
 - **Niveles PSP:** Evolución desde `PSP 0` hasta `PSP 2.1` conforme ganas experiencia.
 - **Bitácora de Tiempos (Time Log):** Registra fecha, inicio, fin, tiempo de interrupción, delta en minutos, actividad y completitud (idéntico a la pág. 17).
-- **Bitácora de Defectos (Defect Log):** Clasifica los bugs con la taxonomía de **Chillagere / IBM** (Tipos 10 Documentación, 20 Sintaxis, 30 Construcción, 40 Asignación, 50 Interfaz, 60 Chequeo, 70 Datos, 80 Función/Lógica, 90 Sistema, 100 Entorno).
+- **Bitácora de Defectos (Defect Log):** Clasifica los bugs con la taxonomía de **Chillarege / IBM** (Tipos 10 Documentación, 20 Sintaxis, 30 Construcción, 40 Asignación, 50 Interfaz, 60 Chequeo, 70 Datos, 80 Función/Lógica, 90 Sistema, 100 Entorno).
 - **Métricas Post-Mortem:** Resumen del proyecto y cálculo en tiempo real de la **Densidad de Defectos**:
   $$Dd = 1000 \times \frac{D}{N}$$
 - **Plan de Mejora Personal (PIP):** Permite registrar propuestas de mejora en el propio proceso personal para recuperar energía y puntos organizacionales.
@@ -48,17 +48,50 @@ En la pestaña **Gremio TSP** lideras una cuadrilla de ingenieros con los **5 ro
 
 ## 🚀 ¿Cómo Ejecutar el Juego?
 
-### Opción 1: Con el lanzador directo (Windows)
-Haz doble clic sobre el archivo:
-- `run_game.bat` (ejecuta el juego ya compilado)
+Requisito: **JDK 17 o superior** (`java -version` y `javac -version` deben funcionar).
+
+### Opción 1: Con los lanzadores (Windows)
+Haz doble clic sobre:
+- `run_game.bat` (ejecuta el juego; si aún no está compilado, lo compila primero)
 - `build_and_run.bat` (recompila y ejecuta)
+- `run_tests.bat` (ejecuta las pruebas JUnit; la primera vez descarga Maven automáticamente)
 
-### Opción 2: Desde la Terminal / PowerShell
+### Opción 2: Con Maven Wrapper (Windows, Linux o macOS, sin instalar Maven)
 ```powershell
-# Compilar:
-javac -encoding UTF-8 -d bin (Get-ChildItem -Recurse -Filter *.java src | Select-Object -ExpandProperty FullName)
+# Windows
+mvnw.cmd package
+java -jar target\software-maturity-rpg.jar
+```
+```bash
+# Linux / macOS
+./mvnw package
+java -jar target/software-maturity-rpg.jar
+```
+`package` compila, ejecuta las pruebas y genera el jar ejecutable. Solo pruebas: `mvnw.cmd test` o `./mvnw test`.
 
-# Ejecutar:
+### Opción 3: Solo con el JDK
+```powershell
+javac -encoding UTF-8 -d bin (Get-ChildItem -Recurse -Filter *.java src | Select-Object -ExpandProperty FullName)
 java -cp bin com.softwarerpg.Main
 ```
 
+## 🎮 Loop de juego
+
+1. En **Campaña CMMI** despliega la misión marcada como **⭐ SIGUIENTE MISIÓN** (las demás se desbloquean en orden).
+2. En **Combate RPG**, *Codifica* para dañar al defecto. Si tu salud baja, usa la *Checklist PSP* o la *Sinergia del Líder*. Cada botón muestra su costo y, al pasar el ratón, su efecto.
+3. Al terminar aparece el letrero de **¡VICTORIA!** o **¡PERDISTE!** con el resumen Post-Mortem PSP (tamaño y tiempo estimado vs. real, defectos, Dd y yield). En derrota puedes reintentar.
+4. Con el oro compra checklists y plantillas, mejora tu organización (MoProSoft) y entrena a tu equipo (TSP).
+
+La campaña tiene **10 misiones** (dos por nivel CMMI: una intermedia y el jefe que te asciende). El oro es escaso a propósito:
+
+- Repetir una misión ya completada paga el **25%**; cada *Caza Rápida* paga la mitad que la anterior (se renueva al completar una misión nueva) y sus bugs escalan con tu nivel.
+- Máximo **5 checklists** en el inventario; dentro de un mismo combate cada revisión extra cura menos.
+- Entrenar al equipo TSP cuesta más en cada nivel.
+
+## 💾 Partidas guardadas
+
+La partida se guarda sola al terminar cada combate y también desde el menú **Partida → Guardar** (Ctrl+S). Al abrir el juego se ofrece continuar la partida guardada. El archivo está en `%USERPROFILE%\.software-maturity-rpg\partida.properties` (Windows) o `~/.software-maturity-rpg/partida.properties` (Linux/macOS).
+
+## 🧪 Pruebas
+
+`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 200 campañas completas de las 10 misiones con tres perfiles: un jugador que aplica el proceso (checklists, estimación, TSP, CMMI) gana las misiones 3 a 10 entre 50% y 90% al primer intento; uno que solo codifica no pasa de la misión 4; y uno que "farmea" oro con cazas rápidas no puede aplanar las misiones finales. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.

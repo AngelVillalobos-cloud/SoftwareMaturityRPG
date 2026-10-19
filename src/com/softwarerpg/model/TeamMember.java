@@ -39,6 +39,13 @@ public class TeamMember {
         this.energy = Math.min(maxEnergy, this.energy + amount);
     }
 
+    /** Restaura entrenamiento y energía al cargar una partida guardada. */
+    public void restoreState(PSPLevel pspTraining, int energy, int maxEnergy) {
+        this.pspTraining = pspTraining;
+        this.maxEnergy = maxEnergy;
+        this.energy = Math.min(energy, maxEnergy);
+    }
+
     public void upgradePsp() {
         this.pspTraining = this.pspTraining.getNext();
         this.maxEnergy += 20;
