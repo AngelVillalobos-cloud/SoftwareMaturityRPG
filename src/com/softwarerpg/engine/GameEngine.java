@@ -19,11 +19,15 @@ public class GameEngine {
     private final Random random;
 
     private Mission activeMission;
-    private int practiceHunts = 0; // Cazas rápidas desde la última misión nueva completada
+    private int practiceHunts = 0; // Cazas rápidas desde el último ascenso de nivel CMMI
+    private boolean pipRewardReady = false; // La primera idea PIP después de cada proyecto da XP
+    private final java.util.Set<String> codexRewarded = new java.util.TreeSet<>(); // Tarjetas/preguntas ya premiadas
+
+    /** XP de la primera idea PIP registrada después de terminar un proyecto. */
+    public static final int PIP_XP = 25;
 
     /** Precios y factores de la economía del juego. */
     public static final int CHECKLIST_COST = 80;
-    public static final int TEMPLATE_COST = 120;
     public static final double REPEAT_MISSION_REWARD = 0.25;
     public static final double PRACTICE_REWARD_DECAY = 0.5;
     private BattleEngine currentBattle;
@@ -50,40 +54,23 @@ public class GameEngine {
     public Mission getActiveMission() { return activeMission; }
     public BattleEngine getCurrentBattle() { return currentBattle; }
 
-    private boolean zeroDefectsStreak = false;
-
     /** true si hay un combate iniciado que aún no termina. */
     public boolean isBattleInProgress() {
         return currentBattle != null && !currentBattle.isBattleOver();
     }
 
-    public boolean hasZeroDefectsStreak() {
-        return zeroDefectsStreak;
-    }
-
-    public void setZeroDefectsStreak(boolean streak) {
-        this.zeroDefectsStreak = streak;
-    }
-
-    /**
-     * Multiplicador base de Caza Rápida:
-     * - Comienza en 1.0 en Nivel 1 CMMI.
-     * - Al superar niveles de campaña (CMMI 2, 3, 4, 5), suma +25% por nivel.
-     * - Si se alcanza 100% de corrección de defectos (cero defectos pendientes), suma +50% extra.
-     * ¡Esto hace que pase del 100% (125%, 150%, 200%) según pidió el usuario!
-     */
-    public double getPracticeBaseMultiplier() {
-        int cmmiBonusIndex = hero.getCmmiLevel().getLevelNumber() - 1; // 0 en Nivel 1
-        double base = 1.0 + cmmiBonusIndex * 0.25;
-        if (zeroDefectsStreak) {
-            base += 0.50; // Bono del 100% de errores corregidos
+    /** Acción de combate que se desbloquea al llegar a un nivel CMMI (null si no hay). */
+    public static String unlockedAction(CMMILevel level) {
+        switch (level.getLevelNumber()) {
+            case 4: return "Nueva acción desbloqueada: 📊 Control Estadístico. Úsala: los jefes de este nivel la necesitan.";
+            case 5: return "Nueva acción desbloqueada: 🚀 Mejora Continua. Úsala: los jefes de este nivel la necesitan.";
+            default: return null;
         }
-        return base;
     }
 
-    /** Fracción de la recompensa de la próxima caza rápida: escalada por nivel y decaimiento. */
+    /** Fracción de la recompensa de la próxima caza rápida: 100%, 50%, 25%... (mínimo 5%). */
     public double getPracticeRewardMultiplier() {
-        return getPracticeBaseMultiplier() * Math.max(0.05, Math.pow(PRACTICE_REWARD_DECAY, practiceHunts));
+        return Math.max(0.05, Math.pow(PRACTICE_REWARD_DECAY, practiceHunts));
     }
 
     public int getPracticeHunts() { return practiceHunts; }
@@ -110,21 +97,20 @@ public class GameEngine {
 
                 @Override
                 public void onBattleEnded(boolean victory) {
+                    pipRewardReady = true; // todo proyecto terminado deja lecciones para el PIP
                     if (victory) {
-                        if (pspLog.getPendingDefects() == 0 && pspLog.getTotalDefects() > 0) {
-                            zeroDefectsStreak = true;
-                        }
                         if (firstCompletion) {
                             mission.setCompleted(true);
-                            practiceHunts = 0; // un proyecto nuevo renueva las cazas rápidas
-                            org.addProcessPoints(mission.getRewardProcessPoints());
                             // Vencer al jefe del nivel actual asciende a la organización en CMMI
                             if (mission.getBossEnemy().isBoss()
                                 && mission.getCmmiStage() == hero.getCmmiLevel().getLevelNumber()
                                 && hero.getCmmiLevel().getNext() != hero.getCmmiLevel()) {
                                 hero.setCmmiLevel(hero.getCmmiLevel().getNext());
+                                practiceHunts = 0; // un nivel CMMI nuevo renueva las cazas rápidas
                                 listener.onBattleLog("🏆 ¡LA ORGANIZACIÓN HA ALCANZADO EL " 
                                         + hero.getCmmiLevel().getName() + " (" + hero.getCmmiLevel().getSubtitle() + ") DE CMMI!");
+                                String unlocked = unlockedAction(hero.getCmmiLevel());
+                                if (unlocked != null) listener.onBattleLog("🔓 " + unlocked);
                             }
                         }
                     }
@@ -144,9 +130,7 @@ public class GameEngine {
         this.currentBattle = new BattleEngine(hero, enemy, pspLog, org, team, new BattleEngine.BattleListener() {
             @Override public void onBattleLog(String message) { listener.onBattleLog(message); }
             @Override public void onBattleEnded(boolean victory) {
-                if (victory && pspLog.getPendingDefects() == 0 && pspLog.getTotalDefects() > 0) {
-                    zeroDefectsStreak = true;
-                }
+                pipRewardReady = true;
                 listener.onBattleEnded(victory);
             }
         }, random);
@@ -164,26 +148,21 @@ public class GameEngine {
         return false;
     }
 
-    public boolean buyDesignTemplate() {
-        int cost = TEMPLATE_COST;
-        if (hero.getGold() >= cost) {
-            hero.spendGold(cost);
-            hero.addDesignTemplates(1);
-            return true;
-        }
-        return false;
+    /**
+     * Plan de Mejora Personal (PSP 0.1): registrar ideas es gratis. La primera idea después de
+     * cada proyecto terminado da XP (reflexionar sobre lo que acaba de pasar).
+     * @return XP ganada (0 si ya se cobró la de este proyecto), o -1 si la idea está vacía.
+     */
+    public int registerPIP(String idea) {
+        if (idea == null || idea.trim().isEmpty()) return -1;
+        hero.addPipIdea(idea.trim());
+        if (!pipRewardReady) return 0;
+        pipRewardReady = false;
+        hero.addXp(PIP_XP);
+        return PIP_XP;
     }
 
-    public boolean registerPIP(String idea) {
-        if (idea == null || idea.trim().isEmpty()) return false;
-        if (hero.consumeMp(20)) {
-            hero.addPipIdea(idea.trim());
-            hero.heal(25);
-            org.addProcessPoints(25);
-            return true;
-        }
-        return false;
-    }
+    public boolean isPipRewardReady() { return pipRewardReady; }
 
     public boolean trainTeamMemberPSP(TeamMember member) {
         if (member.getPspTraining().getNext() == member.getPspTraining()) return false;
@@ -191,57 +170,29 @@ public class GameEngine {
         if (hero.getGold() >= cost) {
             hero.spendGold(cost);
             member.upgradePsp();
-            org.addProcessPoints(35);
             return true;
         }
         return false;
     }
 
-    public boolean upgradeCmmiAppraisal() {
-        if (hero.getCmmiLevel().getNext() == hero.getCmmiLevel()) return false;
-        CMMILevel next = hero.getCmmiLevel().getNext();
-        if (org.getProcessPoints() >= next.getRequiredOrganizationPoints() && org.getCapabilityLevel() >= next.getLevelNumber()) {
-            hero.setCmmiLevel(next);
-            return true;
-        }
-        return false;
+    /** Mejora una categoría MoProSoft pagando con oro. */
+    public boolean upgradeOrg(MoProSoftOrg.Area area) {
+        if (org.isMaxed(area)) return false;
+        int cost = org.upgradeCost(area);
+        if (hero.getGold() < cost) return false;
+        hero.spendGold(cost);
+        return org.upgrade(area);
     }
 
     /**
-     * Utilidad de la Bitácora PSP: Auditar y Consolidar Datos.
-     * Revisa la consistencia de tiempos y defectos (PSP pág 9).
-     * Otorga recuperación de disciplina (+30 MP), salud (+20 HP) y puntos organizacionales (+35).
-     */
-    public String auditPspLog() {
-        int times = pspLog.getTimeLogs().size();
-        int defects = pspLog.getTotalDefects();
-        int pending = pspLog.getPendingDefects();
-        hero.restoreMp(30);
-        hero.heal(20);
-        org.addProcessPoints(35);
-
-        if (pending == 0 && defects > 0) {
-            hero.addGold(40);
-            return "✅ ¡Auditoría Perfecta! Tienes " + times + " fases registradas y 0 defectos pendientes (100% resueltos).\n"
-                    + "¡Ganas +30 MP, +20 HP, +35 Pts de Proceso y bono de +40 Oro por Cero Defectos!";
-        } else if (pending > 0) {
-            return "⚠️ Auditoría completada: " + times + " tiempos registrados, pero tienes " + pending + " defecto(s) sin corregir.\n"
-                    + "Recuperas +30 MP y +20 HP. ¡Usa Checklists de Inspección en combate para no arrastrar fallas!";
-        } else {
-            return "📋 Auditoría inicial realizada: " + times + " actividades en bitácora.\n"
-                    + "Recuperas +30 MP, +20 HP y +35 Puntos de Proceso por mantener la disciplina de registro.";
-        }
-    }
-
-    /**
-     * Utilidad de la Bitácora PSP: Analizar Patrones de Defectos (Chillarege 10-100).
-     * Identifica el tipo de defecto más repetido y genera una regla de defensa preventiva.
+     * Análisis de patrones de defectos (Chillarege 10-100) del proyecto actual:
+     * identifica el tipo más repetido. Es información para decidir, no da recompensas.
      */
     public String analyzeDefectPatterns() {
         java.util.Map<DefectType, Integer> map = pspLog.getDefectsByType();
         if (map.isEmpty()) {
-            return "ℹ️ Aún no hay suficientes defectos registrados en la bitácora para encontrar patrones.\n"
-                    + "Desarrolla más código o combate bugs para acumular datos empíricos.";
+            return "ℹ️ Aún no hay defectos registrados en este proyecto.\n"
+                    + "Cuando codifiques y aparezcan defectos, aquí verás cuál se repite más.";
         }
         DefectType maxType = DefectType.SINTAXIS;
         int maxCount = 0;
@@ -251,18 +202,21 @@ public class GameEngine {
                 maxType = entry.getKey();
             }
         }
-        hero.addXp(30);
-        org.addProcessPoints(20);
-        return "🧠 ¡Patrón Identificado! El defecto más recurrente es: " + maxType.getName() + " (Tipo " + maxType.getCode() + ") con " + maxCount + " ocurrencia(s).\n"
+        return "🧠 El defecto más recurrente es: " + maxType.getName() + " (Tipo " + maxType.getCode() + ") con " + maxCount + " ocurrencia(s).\n"
                 + "Diagnóstico: \"" + maxType.getDescription() + "\".\n"
-                + "Aplicas una regla de prevención personal en tu proceso: +30 XP y +20 Puntos Organizacionales.";
+                + "Idea para tu PIP: agrega a tu checklist una revisión específica para este tipo de defecto.";
     }
 
-    /** Recompensa otorgada al estudiar y responder correctamente en el Códice / Anki. */
-    public void awardCodexReward(int xp, int gold) {
+    /**
+     * Recompensa del Códice (flashcards y quiz): solo la primera vez por cada tarjeta o pregunta.
+     * @return true si se otorgó la recompensa.
+     */
+    public boolean awardCodexReward(String itemKey, int xp, int gold) {
+        if (!codexRewarded.add(itemKey)) return false;
         hero.addXp(xp);
         hero.addGold(gold);
-        org.addProcessPoints(15);
+        return true;
     }
-}
 
+    public java.util.Set<String> getCodexRewarded() { return codexRewarded; }
+}

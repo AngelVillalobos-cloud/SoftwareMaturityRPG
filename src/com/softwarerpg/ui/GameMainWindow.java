@@ -109,25 +109,10 @@ public final class GameMainWindow extends JFrame {
         lblPspBadge = createBadge("PSP: 0", Theme.ACCENT_CYAN);
         lblMoProSoftBadge = createBadge("MoProSoft: Nivel 1", Theme.ACCENT_GREEN);
 
-        JButton btnRest = Theme.createStyledButton("☕ Descanso / Retrospectiva", Theme.ACCENT_AMBER);
-        btnRest.addActionListener(e -> {
-            if (gameEngine.isBattleInProgress()) {
-                JOptionPane.showMessageDialog(this,
-                    "No puedes descansar a mitad de un combate.\nTermina el proyecto primero.",
-                    "Combate en curso", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            gameEngine.getHero().rest();
-            JOptionPane.showMessageDialog(this,
-                "Has realizado una pausa disciplinada y retrospectiva de sprint.\n¡Salud (HP) y Disciplina (MP) restauradas al 100%!",
-                "Sprint Review / Descanso", JOptionPane.INFORMATION_MESSAGE);
-            updateAll();
-        });
 
         rightHeader.add(lblCmmiBadge);
         rightHeader.add(lblPspBadge);
         rightHeader.add(lblMoProSoftBadge);
-        rightHeader.add(btnRest);
         headerPanel.add(rightHeader, BorderLayout.EAST);
 
         rootPanel.add(headerPanel, BorderLayout.NORTH);
@@ -191,19 +176,26 @@ public final class GameMainWindow extends JFrame {
                .append("⭐ Recompensas: <b>+").append(battle.getXpEarned()).append(" XP</b> y <b>+")
                .append(battle.getGoldEarned()).append(" Oro</b>")
                .append(battle.getXpEarned() < enemy.getXpReward() ? " <i>(recompensa reducida: proyecto repetido o caza rápida)</i>" : "")
-               .append(".<br><br>")
+               .append(".")
+               .append(battle.hasQualityBonus() ? "<br>🏆 Bono de calidad (+20% oro): entregaste sin defectos pendientes." : "")
+               .append("<br><br>")
                .append(postMortemSummary());
             if (cmmiAtBattleStart != null && hero.getCmmiLevel() != cmmiAtBattleStart) {
                 msg.append("<br><br>🏆 ¡Tu organización ascendió a <b>CMMI ")
                    .append(hero.getCmmiLevel().getName()).append("</b>!");
+                String unlocked = GameEngine.unlockedAction(hero.getCmmiLevel());
+                if (unlocked != null) msg.append("<br>🔓 <b>").append(unlocked).append("</b>");
             }
         } else {
             msg.append("<h2 style='color:#F87171;'>💀 ¡PERDISTE!</h2>")
                .append("El proyecto colapsó ante <b>").append(enemy.getName()).append("</b>.<br><br>")
-               .append("💡 Consejo: usa la <b>Checklist PSP</b> o la <b>Sinergia del Líder</b> cuando tu salud baje, ")
-               .append("y compra checklists en la Campaña antes de volver a intentarlo.");
+               .append("💡 Consejo: codifica para ganar MP y úsalo en <b>Planear</b> o en tu <b>equipo TSP</b>; ")
+               .append("usa la <b>Checklist PSP</b> cuando tu salud baje o se acumulen defectos. ")
+               .append("Entre misiones, entrena a tu equipo y mejora tu empresa con el oro.");
         }
-        msg.append("<br><br><i>Retrospectiva del equipo: salud y disciplina restauradas.</i></body></html>");
+        msg.append("<br><br><i>Retrospectiva del equipo: salud y disciplina restauradas.")
+           .append(gameEngine.isPipRewardReady() ? " Registra una idea en tu PIP (Bitácora PSP) para ganar +" + GameEngine.PIP_XP + " XP." : "")
+           .append("</i></body></html>");
 
         Sound.play(victory ? Sound.Sfx.VICTORY : Sound.Sfx.DEFEAT);
 

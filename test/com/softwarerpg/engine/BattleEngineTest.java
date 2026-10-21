@@ -54,11 +54,40 @@ class BattleEngineTest {
 
         b.actionWriteCode();
 
-        // Daño = 22 + 5×nivel(1) + 3×BSI(1) = 30, menos 5 de defensa
-        assertEquals(475, e.getHp());
-        // Ataque 20 × (1 - 0.08 × capacidad MoProSoft 1) = 18
-        assertEquals(82, hero.getHp());
+        // Daño = 22 + 5×nivel(1) = 27, menos 5 de defensa
+        assertEquals(478, e.getHp());
+        // Ataque 20 sin mejoras de Gerencia (GER)
+        assertEquals(80, hero.getHp());
         assertEquals(1, b.getTurnCount());
+    }
+
+    @Test
+    void codificarGeneraDisciplinaYPlanearLaGasta() {
+        BattleEngine b = battle(enemy(5000), new FixedRandom(0.5));
+        hero.consumeMp(hero.getMp()); // sin MP
+
+        b.actionEstimateSize();
+        assertEquals(0, b.getTurnCount(), "sin MP no se puede planear");
+
+        b.actionWriteCode();
+        b.actionWriteCode();
+        assertEquals(2 * BattleEngine.CODING_MP_GAIN, hero.getMp());
+
+        b.actionEstimateSize();
+        assertEquals(2 * BattleEngine.CODING_MP_GAIN - BattleEngine.COST_PLAN, hero.getMp(), "planear ya no devuelve más MP del que cuesta");
+    }
+
+    @Test
+    void lasMejorasDeOperacionYGerenciaSeNotanEnCombate() {
+        org.upgrade(MoProSoftOrg.Area.OPE);
+        org.upgrade(MoProSoftOrg.Area.GER);
+        Enemy e = enemy(500);
+        BattleEngine b = battle(e, new FixedRandom(0.5));
+
+        b.actionWriteCode();
+
+        assertEquals(500 - (27 + 5 - 5), e.getHp(), "OPE: +5 de daño");
+        assertEquals(100 - 18, hero.getHp(), "GER: -8% de daño recibido (20 → 18)");
     }
 
     @Test
@@ -69,8 +98,8 @@ class BattleEngineTest {
 
         b.actionWriteCode();
 
-        // (20 + 2 pendientes × 2) × 0.92 = 22
-        assertEquals(78, hero.getHp());
+        // 20 + 2 pendientes × 4 = 28
+        assertEquals(72, hero.getHp());
     }
 
     // ------------------------------------------------------------------ #1 Ciclo de vida de defectos
@@ -106,9 +135,9 @@ class BattleEngineTest {
         hero.addChecklists(3);
 
         hero.takeDamage(80); int before = hero.getHp(); b.actionInspectCode();
-        int firstHeal = hero.getHp() - before + 18;   // + el contraataque de ese turno (18)
+        int firstHeal = hero.getHp() - before + 20;   // + el contraataque de ese turno (20)
         hero.rest(); hero.takeDamage(60); before = hero.getHp(); b.actionInspectCode();
-        int secondHeal = hero.getHp() - before + 18;
+        int secondHeal = hero.getHp() - before + 20;
 
         assertEquals(25, firstHeal, "PSP 0: curación base completa");
         assertEquals(12, secondHeal, "la segunda revisión cura la mitad");
@@ -196,12 +225,10 @@ class BattleEngineTest {
     // ------------------------------------------------------------------ #4 Administrador de Requerimientos
 
     @Test
-    void laLineaBaseDeConfiguracionEvitaDefectosYReduceElContraataque() {
+    void laLineaBaseDeConfiguracionEvitaDefectos() {
         BattleEngine b = battle(enemy(5000), new FixedRandom(0.0)); // sin línea base siempre inyecta
 
         b.actionTeamSynergy(TSPRole.GESTOR_REQUERIMIENTOS);
-        // Ataque 20 × 0.85 (variación mínima) = 17 → × 0.92 = 15 → mitad = 7
-        assertEquals(93, hero.getHp());
 
         for (int i = 0; i < 3; i++) b.actionWriteCode();
         assertEquals(0, log.getTotalDefects(), "3 codificaciones protegidas");
@@ -210,10 +237,36 @@ class BattleEngineTest {
         assertEquals(1, log.getTotalDefects(), "la 4a codificación ya no está protegida");
     }
 
-    // ------------------------------------------------------------------ #2 LOC y #6 plantillas
+    @Test
+    void elGestorDePlanificacionReduceALaMitadDosContraataques() {
+        BattleEngine b = battle(enemy(5000), new FixedRandom(0.5));
+
+        b.actionTeamSynergy(TSPRole.GESTOR_PLANIFICACION); // 20 → 10
+        b.actionWriteCode();                              // 20 → 10
+        b.actionWriteCode();                              // ya sin colchón: 20
+
+        assertEquals(100 - 10 - 10 - 20, hero.getHp());
+    }
 
     @Test
-    void laEstimacionReestimaElTamanoYConsumeUnaPlantilla() {
+    void laSinergiaEsMasFuerteConMasEntrenamientoPsp() {
+        List<TeamMember> team = GameData.createInitialTeam();
+        TeamMember dev = team.get(1); // Gestor de Desarrollo
+        Enemy e = enemy(500);
+        BattleEngine b = new BattleEngine(hero, e, log, org, team, listener, new FixedRandom(0.5));
+        int expected = (int) Math.round(45 * BattleEngine.synergyPower(dev)) - 5;
+
+        b.actionTeamSynergy(TSPRole.GESTOR_DESARROLLO);
+
+        assertEquals(500 - expected, e.getHp());
+        dev.upgradePsp();
+        assertTrue(BattleEngine.synergyPower(dev) > 1.0 + 0.10 * PSPLevel.PSP1.ordinal());
+    }
+
+    // ------------------------------------------------------------------ #2 LOC y planeación
+
+    @Test
+    void planearReestimaElTamanoYProtegeTresCodificaciones() {
         BattleEngine b = battle(enemy(5000), new FixedRandom(0.0));
         // PSP 0: tamaño real = estimado × (1 + 15% de sesgo) = 115
         assertEquals(115, log.getFinalLOC());
@@ -221,9 +274,25 @@ class BattleEngineTest {
         b.actionEstimateSize();
 
         assertEquals(108, log.getEstimatedLOC(), "el estimado se acerca a la mitad del camino del real");
-        assertEquals(0, hero.getDesignTemplates());
         for (int i = 0; i < 3; i++) b.actionWriteCode();
-        assertEquals(0, log.getTotalDefects(), "la plantilla PSP 2.1 protege 3 codificaciones");
+        assertEquals(0, log.getTotalDefects(), "planear y diseñar protege 3 codificaciones");
+        b.actionWriteCode();
+        assertEquals(1, log.getTotalDefects());
+    }
+
+    @Test
+    void planearSeHaceUnaVezPorProyectoYPotenciaTresAtaques() {
+        Enemy e = enemy(5000);
+        BattleEngine b = battle(e, new FixedRandom(0.5));
+
+        b.actionEstimateSize();
+        int turns = b.getTurnCount();
+        b.actionEstimateSize();
+        assertEquals(turns, b.getTurnCount(), "la segunda planeación no gasta turno");
+
+        for (int i = 0; i < 4; i++) b.actionWriteCode();
+        // 3 ataques planeados: 27 × 1.3 = 35 (-5 def = 30); el 4o normal: 27 - 5 = 22
+        assertEquals(5000 - 3 * 30 - 22, e.getHp());
     }
 
     @Test
@@ -232,9 +301,9 @@ class BattleEngineTest {
         BattleEngine b = battle(e, new FixedRandom(0.5));
         assertEquals(0, log.getActualLOC());
 
-        b.actionWriteCode(); // 25 de 250 HP = 10% del proyecto
+        b.actionWriteCode(); // 22 de 250 HP = 8.8% del proyecto
 
-        assertEquals(Math.round(115 * 0.1), log.getActualLOC());
+        assertEquals(Math.round(115 * 22 / 250.0), log.getActualLOC());
     }
 
     // ------------------------------------------------------------------ #5 Bitácora de tiempos
@@ -269,7 +338,8 @@ class BattleEngineTest {
         assertTrue(b.isBattleOver());
         assertEquals(Boolean.TRUE, listener.result);
         assertEquals(100, hero.getXp());
-        assertEquals(350, hero.getGold());
+        assertEquals(300 + 60, hero.getGold(), "50 de oro + 20% de bono de calidad (sin defectos pendientes)");
+        assertTrue(b.hasQualityBonus());
         assertEquals(115, log.getActualLOC(), "al entregar, las LOC reales llegan al tamaño final");
         assertEquals(1, log.getHistory().size());
         assertTrue(log.getHistory().get(0).isDelivered());

@@ -29,28 +29,45 @@ public class BattleEngine {
     static final int CHECKLIST_HEAL_PER_PSP = 6;
     static final int PEER_REVIEW_REMOVALS = 2;
     /** Daño extra del enemigo por cada defecto inyectado que siga sin corregir. */
-    static final int PENDING_DEFECT_PENALTY = 2;
+    static final int PENDING_DEFECT_PENALTY = 4;
     /** Control Estadístico: daño base + bonificación proporcional al yield (máx. 100). */
     static final int STAT_BASE_DAMAGE = 60;
     /** Codificaciones protegidas por la línea base de configuración del Administrador de Requerimientos. */
     static final int CONFIG_BASELINE_TURNS = 3;
-    /** Codificaciones sin defectos al diseñar con una plantilla PSP 2.1 (se consume al estimar). */
-    static final int TEMPLATE_CODINGS = 3;
+    /** Codificaciones sin defectos después de planear y diseñar (PSP 1 / 2.1). */
+    static final int PLANNED_CODINGS = 3;
+    /** Ataques que reciben el bono de daño de la planeación. */
+    static final int PLANNED_ATTACKS = 3;
+    /** Disciplina (MP) que se gana en cada codificación: trabajar con método la genera. */
+    public static final int CODING_MP_GAIN = 8;
+    /** Multiplicador de daño de los ataques planeados. */
+    static final double PLANNED_DAMAGE_BONUS = 1.3;
+    /** Contraataques reducidos a la mitad por el colchón del Gestor de Planificación. */
+    static final int SCHEDULE_BUFFER_TURNS = 2;
+    /** Bono de oro al entregar sin defectos pendientes (yield 100%). */
+    static final double QUALITY_GOLD_BONUS = 0.20;
+    /** Costos de disciplina (MP) de cada acción especial. */
+    public static final int COST_PLAN = 10;
+    public static final int COST_SYNERGY = 20;
+    public static final int COST_STAT = 25;
+    public static final int COST_CONTINUOUS = 30;
     /** Variación del daño de codificar y del ataque enemigo (±15%). */
     static final double DAMAGE_VARIANCE = 0.15;
     static final int STAT_YIELD_BONUS = 40;
 
     private boolean battleOver = false;
     private int turnCount = 0;
-    private boolean enemyDefenseWeakened = false;
+    private int plannedAttacks = 0;             // Ataques con el bono de la planeación
+    private boolean planned = false;            // La planeación se hace una vez por proyecto
     private int continuousImprovementTurns = 0; // Efecto CMMI-5
     private int configBaselineTurns = 0;        // Codificaciones protegidas por la línea base de configuración
-    private boolean halveNextEnemyAttack = false;
-    private int designTemplateCodings = 0;      // Codificaciones guiadas por una plantilla de diseño PSP 2.1
+    private int halvedEnemyAttacks = 0;         // Contraataques a la mitad (colchón de planificación)
+    private int plannedCodings = 0;             // Codificaciones planeadas y diseñadas: sin defectos
     private int checklistsUsed = 0;             // Revisiones hechas en este proyecto (rendimiento decreciente)
     private double rewardMultiplier = 1.0;      // Recompensas reducidas al farmear o repetir proyectos
     private int xpEarned = 0;
     private int goldEarned = 0;
+    private boolean qualityBonus = false;
 
     public BattleEngine(Hero hero, Enemy enemy, PSPLog pspLog, MoProSoftOrg org,
                         java.util.List<TeamMember> team, BattleListener listener) {
@@ -86,7 +103,11 @@ public class BattleEngine {
     public Enemy getEnemy() { return enemy; }
     public int getTurnCount() { return turnCount; }
     public int getXpEarned() { return xpEarned; }
+    /** true si ya se planeó este proyecto (Planear se usa una vez, al inicio). */
+    public boolean isPlanned() { return planned; }
     public int getGoldEarned() { return goldEarned; }
+    /** true si el proyecto se entregó sin defectos pendientes (bono de calidad). */
+    public boolean hasQualityBonus() { return qualityBonus; }
 
     /** Fracción de las recompensas que se otorgan al ganar (1.0 = completas). */
     public void setRewardMultiplier(double multiplier) {
@@ -98,34 +119,22 @@ public class BattleEngine {
      */
     public void actionWriteCode() {
         if (battleOver) return;
-        int baseDamage = 22 + hero.getLevel() * 5;
-        if (enemyDefenseWeakened) {
-            baseDamage = (int)(baseDamage * 1.4);
-            enemyDefenseWeakened = false;
-        }
-
-        // Bono de infraestructura MoProSoft BSI y madurez de Operación (OPE)
-        baseDamage += org.getInfrastructureLevel() * 3 + org.getOperationAttackBonus();
-        if ("Agilidad y Entrega".equals(org.getStrategicFocus())) {
-            baseDamage = (int)(baseDamage * 1.15);
-        }
-        baseDamage = vary(baseDamage);
+        // Daño base + madurez de Operación (OPE) de MoProSoft
+        int baseDamage = vary(planned(22 + hero.getLevel() * 5 + org.getCodingDamageBonus()));
+        hero.restoreMp(CODING_MP_GAIN);
 
         listener.onBattleLog("💻 " + hero.getName() + " escribe módulos de código e inflige " + baseDamage + " de daño.");
         enemy.takeDamage(baseDamage);
         logTime("Codificación", 15, "Implementación de módulos contra " + enemy.getName());
 
-        // Posibilidad de inyectar un defecto si el nivel PSP es bajo (reducida por OPE)
-        double defectChance = Math.max(0.04, 0.40 - (hero.getPspLevel().ordinal() * 0.07) - org.getDefectReductionFactor());
-        if ("Calidad Total".equals(org.getStrategicFocus())) {
-            defectChance = Math.max(0.02, defectChance - 0.05);
-        }
+        // Posibilidad de inyectar un defecto: baja con el nivel PSP y la madurez de Operación (OPE)
+        double defectChance = defectChance();
         if (configBaselineTurns > 0) {
             configBaselineTurns--;
             listener.onBattleLog("🔒 Línea base de configuración activa: los cambios están controlados y no se inyectan defectos.");
-        } else if (designTemplateCodings > 0) {
-            designTemplateCodings--;
-            listener.onBattleLog("📑 El código sigue la plantilla de diseño PSP 2.1: no se inyectan defectos.");
+        } else if (plannedCodings > 0) {
+            plannedCodings--;
+            listener.onBattleLog("📑 El código sigue el diseño que planeaste (PSP 2.1): no se inyectan defectos.");
         } else if (random.nextDouble() < defectChance) {
             DefectType defectType = enemy.getAssociatedDefect() != null ? enemy.getAssociatedDefect() : DefectType.SINTAXIS;
             listener.onBattleLog("⚠️ ¡Alerta! Durante la codificación se inyectó un defecto: " + defectType.getName() + ".");
@@ -151,9 +160,6 @@ public class BattleEngine {
         // Rendimiento decreciente: cada revisión adicional del mismo producto encuentra menos
         // (la 1a cura completo, la 2a la mitad, la 3a un tercio...).
         int baseHeal = CHECKLIST_BASE_HEAL + hero.getPspLevel().ordinal() * CHECKLIST_HEAL_PER_PSP;
-        if ("Calidad Total".equals(org.getStrategicFocus())) {
-            baseHeal = (int)(baseHeal * 1.25);
-        }
         int healAmount = baseHeal / (1 + checklistsUsed);
         checklistsUsed++;
         hero.heal(healAmount);
@@ -174,27 +180,26 @@ public class BattleEngine {
     }
 
     /**
-     * Acción 3: Estimación y Análisis de Tamaño LOC (PSP 1)
+     * Acción 3: Planear y diseñar (PSP 1 / PSP 2.1). Se hace una vez por proyecto:
+     * re-estima el tamaño, los siguientes 3 ataques hacen +30% de daño y las siguientes
+     * 3 codificaciones siguen el diseño (no inyectan defectos).
      */
     public void actionEstimateSize() {
         if (battleOver) return;
 
-        if (!hero.consumeMp(15)) {
-            listener.onBattleLog("❌ No tienes suficiente energía de disciplina (Requiere 15 MP).");
+        if (planned) {
+            listener.onBattleLog("ℹ️ Este proyecto ya está planeado: la planeación se hace una vez, al inicio.");
+            return;
+        }
+        if (!hero.consumeMp(COST_PLAN)) {
+            listener.onBattleLog("❌ No tienes suficiente disciplina (requiere " + COST_PLAN + " MP). Codifica para ganar MP.");
             return;
         }
 
-        enemyDefenseWeakened = true;
-        hero.restoreMp(25);
-        logTime("Planeación", 10, "Estimación de tamaño (LOC) y calendarización");
-
-        // Diseño con plantilla PSP 2.1: especificación formal antes de codificar
-        if (hero.getDesignTemplates() > 0) {
-            hero.useDesignTemplate();
-            designTemplateCodings = TEMPLATE_CODINGS;
-            listener.onBattleLog("📑 Usas una Plantilla de Diseño PSP 2.1: las próximas " + TEMPLATE_CODINGS
-                    + " codificaciones no inyectan defectos.");
-        }
+        planned = true;
+        plannedAttacks = PLANNED_ATTACKS;
+        plannedCodings = PLANNED_CODINGS;
+        logTime("Planeación", 10, "Estimación de tamaño (LOC) y diseño");
 
         // Re-estimación con datos reales del avance (PSP 1): el estimado se acerca al tamaño real
         int oldEstimate = pspLog.getEstimatedLOC();
@@ -203,8 +208,8 @@ public class BattleEngine {
         if (newEstimate != oldEstimate) {
             listener.onBattleLog("📏 Re-estimación de tamaño: de " + oldEstimate + " a " + newEstimate + " LOC.");
         }
-        listener.onBattleLog("📐 Realizas estimación formal de tamaño (LOC) y planificación de tareas (PSP 1 / 1.1).");
-        listener.onBattleLog("🎯 ¡La defensa del enemigo se reduce drásticamente para tu próximo ataque y recuperas disciplina!");
+        listener.onBattleLog("📐 Planeas y diseñas antes de programar (PSP 1 / 2.1): tus próximos " + PLANNED_ATTACKS
+                + " ataques hacen +" + Math.round((PLANNED_DAMAGE_BONUS - 1) * 100) + "% de daño y tus próximas " + PLANNED_CODINGS + " codificaciones no inyectan defectos.");
 
         checkBattleStatus();
         if (!battleOver) enemyTurn();
@@ -216,49 +221,82 @@ public class BattleEngine {
     public void actionTeamSynergy(TSPRole role) {
         if (battleOver) return;
 
-        if (!hero.consumeMp(20)) {
-            listener.onBattleLog("❌ Requiere 20 MP de esfuerzo disciplinado para coordinar con el equipo.");
+        if (!hero.consumeMp(COST_SYNERGY)) {
+            listener.onBattleLog("❌ Requiere " + COST_SYNERGY + " MP de disciplina para coordinar con el equipo. Codifica para ganar MP.");
             return;
         }
 
         TeamMember member = team.stream().filter(m -> m.getRole() == role).findFirst().orElse(null);
         String memberName = member != null ? member.getName() : role.getTitle();
+        double power = synergyPower(member);
 
         listener.onBattleLog("🤝 ¡Sinergia TSP activada con " + memberName + "!");
         logTime(synergyPhase(role), 10, "Sinergia TSP con " + memberName);
 
         switch (role) {
-            case LIDER_EQUIPO:
-                hero.heal(30);
-                hero.restoreMp(10);
-                listener.onBattleLog("📢 El Líder de Equipo motiva al grupo y revisa los compromisos semanales. (+30 HP, +10 MP).");
+            case LIDER_EQUIPO: {
+                int heal = (int) Math.round(30 * power);
+                hero.heal(heal);
+                listener.onBattleLog("📢 El Líder de Equipo motiva al grupo y revisa los compromisos: +" + heal + " HP.");
                 break;
-            case GESTOR_DESARROLLO:
-                int devDmg = 45 + org.getKnowledgeBaseLevel() * 5;
+            }
+            case GESTOR_DESARROLLO: {
+                int devDmg = planned((int) Math.round(45 * power));
                 enemy.takeDamage(devDmg);
-                listener.onBattleLog("⚡ El Gestor de Desarrollo aplica patrones arquitectónicos sólidos e inflige " + devDmg + " de daño puro.");
+                listener.onBattleLog("⚡ El Gestor de Desarrollo aplica patrones arquitectónicos sólidos e inflige " + devDmg + " de daño.");
                 break;
+            }
             case GESTOR_PLANIFICACION:
-                enemyDefenseWeakened = true;
-                listener.onBattleLog("📅 El Gestor de Planificación optimiza el cronograma y calendarización. El enemigo pierde iniciativa.");
+                halvedEnemyAttacks = SCHEDULE_BUFFER_TURNS;
+                listener.onBattleLog("📅 El Gestor de Planificación ajusta el calendario: los próximos "
+                        + SCHEDULE_BUFFER_TURNS + " contraataques hacen la mitad de daño.");
                 break;
-            case GESTOR_CALIDAD:
-                hero.heal(20);
-                enemy.takeDamage(25);
+            case GESTOR_CALIDAD: {
+                int heal = (int) Math.round(15 * power);
+                hero.heal(heal);
                 int found = pspLog.removePendingDefects(PEER_REVIEW_REMOVALS, "Inspección TSP", 5);
-                listener.onBattleLog("🛡️ El Gestor de Calidad modera una inspección por pares. Absorbe daño e inflige 25 a los bugs.");
-                if (found > 0) listener.onBattleLog("🔍 La inspección por pares corrigió " + found + " defecto(s) pendiente(s).");
+                listener.onBattleLog("🛡️ El Gestor de Calidad modera una inspección por pares: +" + heal + " HP"
+                        + (found > 0 ? " y corrige " + found + " defecto(s) pendiente(s)." : "; no había defectos pendientes."));
                 break;
+            }
             case GESTOR_REQUERIMIENTOS:
                 configBaselineTurns = CONFIG_BASELINE_TURNS;
-                halveNextEnemyAttack = true;
                 listener.onBattleLog("📦 El Administrador de Requerimientos fija la línea base de configuración: las próximas "
-                        + CONFIG_BASELINE_TURNS + " codificaciones no inyectan defectos y el contraataque de este turno hace la mitad de daño.");
+                        + CONFIG_BASELINE_TURNS + " codificaciones no inyectan defectos.");
                 break;
         }
 
         checkBattleStatus();
         if (!battleOver) enemyTurn();
+    }
+
+    /** Aplica el bono de la planeación a los ataques planeados (cualquier acción que haga daño). */
+    private int planned(int damage) {
+        if (plannedAttacks <= 0) return damage;
+        plannedAttacks--;
+        return (int) Math.round(damage * PLANNED_DAMAGE_BONUS);
+    }
+
+    /** Potencia de la sinergia: +10% por cada nivel PSP en el que esté entrenado el miembro. */
+    public static double synergyPower(TeamMember member) {
+        return member == null ? 1.0 : 1.0 + 0.10 * member.getPspTraining().ordinal();
+    }
+
+    /** Efecto de la sinergia de un rol con la potencia indicada (texto para botones y menús). */
+    public static String synergyEffect(TSPRole role, double power) {
+        switch (role) {
+            case LIDER_EQUIPO: return "Cura +" + Math.round(30 * power) + " HP";
+            case GESTOR_DESARROLLO: return "Ataque fuerte de " + Math.round(45 * power) + " de daño";
+            case GESTOR_PLANIFICACION: return "Los próximos " + SCHEDULE_BUFFER_TURNS + " contraataques hacen la mitad de daño";
+            case GESTOR_CALIDAD: return "Corrige " + PEER_REVIEW_REMOVALS + " defectos pendientes y cura +" + Math.round(15 * power) + " HP";
+            case GESTOR_REQUERIMIENTOS: return "Tus próximas " + CONFIG_BASELINE_TURNS + " codificaciones no inyectan defectos";
+            default: return role.getSkillEffect();
+        }
+    }
+
+    /** Probabilidad de inyectar un defecto al codificar (PSP y OPE la reducen; mínimo 5%). */
+    double defectChance() {
+        return Math.max(0.05, 0.40 - hero.getPspLevel().ordinal() * 0.06 - org.getDefectReduction());
     }
 
     /**
@@ -272,14 +310,14 @@ public class BattleEngine {
             return;
         }
 
-        if (!hero.consumeMp(25)) {
-            listener.onBattleLog("❌ Requiere 25 MP de esfuerzo.");
+        if (!hero.consumeMp(COST_STAT)) {
+            listener.onBattleLog("❌ Requiere " + COST_STAT + " MP de disciplina.");
             return;
         }
 
         // Un proceso bajo control (yield alto: defectos removidos a tiempo) produce un golpe más certero
         double yield = pspLog.calculateYield();
-        int statDamage = STAT_BASE_DAMAGE + (int) Math.round(STAT_YIELD_BONUS * yield / 100.0);
+        int statDamage = planned(STAT_BASE_DAMAGE + (int) Math.round(STAT_YIELD_BONUS * yield / 100.0));
         enemy.takeDamage(statDamage);
         logTime("Análisis cuantitativo", 10, "Control estadístico de subprocesos (CMMI 4)");
         listener.onBattleLog(String.format("📊 ¡Control Cuantitativo CMMI-4! Yield del proceso: %.0f%%.", yield));
@@ -300,8 +338,8 @@ public class BattleEngine {
             return;
         }
 
-        if (!hero.consumeMp(30)) {
-            listener.onBattleLog("❌ Requiere 30 MP de esfuerzo.");
+        if (!hero.consumeMp(COST_CONTINUOUS)) {
+            listener.onBattleLog("❌ Requiere " + COST_CONTINUOUS + " MP de disciplina.");
             return;
         }
 
@@ -328,23 +366,16 @@ public class BattleEngine {
             listener.onBattleLog("✨ Mejora continua activa: +15 HP regenerados.");
         }
 
-        // Beneficio de enfoque estratégico: Innovación (DIR)
-        if ("Innovación".equals(org.getStrategicFocus())) {
-            hero.restoreMp(5);
-            listener.onBattleLog("💡 Enfoque en Innovación (DIR): +5 MP de disciplina recuperados.");
-        }
-
         int rawAtk = vary(enemy.getAttackPower());
         // Los defectos sin corregir agravan las fallas en producción
         int pending = pspLog.getPendingDefects();
         rawAtk += pending * PENDING_DEFECT_PENALTY;
-        // Reducción por madurez de procesos MoProSoft
-        double defenseFactor = 1.0 - (org.getCapabilityLevel() * 0.08);
-        int finalDamage = Math.max(3, (int)(rawAtk * defenseFactor));
-        if (halveNextEnemyAttack) {
+        // Reducción por la Gerencia (GER) de MoProSoft: recursos e infraestructura
+        int finalDamage = Math.max(3, (int) (rawAtk * (1.0 - org.getDamageReduction())));
+        if (halvedEnemyAttacks > 0) {
+            halvedEnemyAttacks--;
             finalDamage = Math.max(1, finalDamage / 2);
-            halveNextEnemyAttack = false;
-            listener.onBattleLog("📦 El control de cambios absorbe la mitad del ataque.");
+            listener.onBattleLog("📅 El calendario ajustado absorbe la mitad del ataque.");
         }
 
         hero.takeDamage(finalDamage);
@@ -384,20 +415,20 @@ public class BattleEngine {
         if (enemy.isDefeated()) {
             battleOver = true;
             listener.onBattleLog("🎉 ¡VICTORIA! Has derrotado a " + enemy.getName() + ".");
+            // Entregar sin defectos pendientes (yield 100%) paga un bono de calidad
+            qualityBonus = pspLog.getPendingDefects() == 0;
+            double goldFactor = rewardMultiplier * org.getGoldMultiplier() * (qualityBonus ? 1 + QUALITY_GOLD_BONUS : 1);
             xpEarned = (int) Math.round(enemy.getXpReward() * rewardMultiplier);
-            goldEarned = (int) Math.round(enemy.getGoldReward() * rewardMultiplier * org.getBudgetMultiplier());
+            goldEarned = (int) Math.round(enemy.getGoldReward() * goldFactor);
             listener.onBattleLog("⭐ Recompensas obtenidas: +" + xpEarned + " XP, +" + goldEarned + " Oro"
-                    + (org.getDirLevel() > 1 ? " (+" + Math.round((org.getBudgetMultiplier() - 1) * 100) + "% por Alta Dirección DIR)" : "")
-                    + (rewardMultiplier < 1 ? " (" + Math.round(rewardMultiplier * 100) + "% base)." : "."));
-
-            if (pspLog.getPendingDefects() == 0 && pspLog.getTotalDefects() > 0) {
-                listener.onBattleLog("🏆 ¡CALIDAD TOTAL / CERO DEFECTOS PENDIENTES! Corregiste el 100% de los defectos inyectados. Tu yield es 100%.");
+                    + (rewardMultiplier < 1 ? " (" + Math.round(rewardMultiplier * 100) + "% de la recompensa completa)." : "."));
+            if (qualityBonus) {
+                listener.onBattleLog("🏆 ¡Cero defectos pendientes (yield 100%)! Bono de calidad: +"
+                        + Math.round(QUALITY_GOLD_BONUS * 100) + "% de oro.");
             }
 
             hero.addXp(xpEarned);
             hero.addGold(goldEarned);
-            org.addBudget(goldEarned / 2);
-            org.addProcessPoints((int) Math.round(30 * rewardMultiplier));
 
             pspLog.logActivity("Post-Mortem", 10, 0, "Proyecto entregado: consolidación de métricas", true);
             pspLog.closeProject(true);

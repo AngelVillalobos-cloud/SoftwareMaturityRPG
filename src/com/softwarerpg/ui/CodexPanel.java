@@ -109,7 +109,7 @@ public final class CodexPanel extends JPanel {
         JPanel headerCard = Theme.createCard("🃏 Repaso Activo con Flashcards (Estilo Anki)");
         JLabel info = new JLabel("<html><body style='color:#D1D5DB;'>"
                 + "Aprende jugando: Lee la pregunta, piensa tu respuesta y haz clic en <b>Voltear Tarjeta</b>. "
-                + "Si ya la dominas, presiona <b>✅ ¡Entendido!</b> para ganar XP y Oro en el juego."
+                + "Si ya la dominas, presiona <b>✅ ¡Entendido!</b> para ganar XP y Oro (una vez por tarjeta)."
                 + "</body></html>");
         info.setFont(Theme.FONT_REGULAR);
         headerCard.add(info, BorderLayout.CENTER);
@@ -158,7 +158,7 @@ public final class CodexPanel extends JPanel {
         JButton btnNext = Theme.createStyledButton("Siguiente ➡️", Theme.PANEL_SECONDARY);
         btnNext.addActionListener(e -> nextCard());
 
-        btnLearned = Theme.createStyledButton("✅ ¡Entendido! (+20 XP, +15 Oro)", Theme.ACCENT_GREEN);
+        btnLearned = Theme.createStyledButton("✅ ¡Entendido! (+20 XP, +15 Oro la primera vez)", Theme.ACCENT_GREEN);
         btnLearned.addActionListener(e -> markCardLearned());
 
         btnPanel.add(btnPrev);
@@ -219,12 +219,14 @@ public final class CodexPanel extends JPanel {
 
     private void markCardLearned() {
         if (gameEngine != null) {
-            gameEngine.awardCodexReward(20, 15);
-            Sound.play(Sound.Sfx.COIN);
-            JOptionPane.showMessageDialog(this,
-                "¡Excelente aprendizaje!\nGanas +20 XP de Ingeniero y +15 Monedas de Oro para tu empresa.",
-                "¡Concepto Aprendido!", JOptionPane.INFORMATION_MESSAGE);
-            if (onStateUpdated != null) onStateUpdated.run();
+            // Solo la primera vez por tarjeta: estudiar no debe convertirse en una forma de farmear
+            if (gameEngine.awardCodexReward("tarjeta." + currentCardIndex, 20, 15)) {
+                Sound.play(Sound.Sfx.COIN);
+                JOptionPane.showMessageDialog(this,
+                    "¡Excelente aprendizaje!\nGanas +20 XP y +15 de oro.",
+                    "¡Concepto Aprendido!", JOptionPane.INFORMATION_MESSAGE);
+                if (onStateUpdated != null) onStateUpdated.run();
+            }
         }
         nextCard();
     }
@@ -310,7 +312,7 @@ public final class CodexPanel extends JPanel {
         topContent.setOpaque(false);
 
         JLabel info = new JLabel("<html><body style='color:#D1D5DB;'>"
-                + "Responde las preguntas de ingeniería de software para obtener <b>+40 XP</b> y <b>+30 Oro</b> en el juego real. "
+                + "Responde las preguntas de ingeniería de software para obtener <b>+40 XP</b> y <b>+30 Oro</b> la primera vez que aciertas cada pregunta. "
                 + "Aprende de las explicaciones si fallas alguna."
                 + "</body></html>");
         info.setFont(Theme.FONT_REGULAR);
@@ -388,8 +390,9 @@ public final class CodexPanel extends JPanel {
             Sound.play(Sound.Sfx.VICTORY);
             lblQuizFeedback.setText("<html><b style='color:#4ADE80;'>¡CORRECTO!</b> " + q.explanation + "</html>");
             lblQuizScore.setText("🏆 Racha de Aciertos: " + correctStreak);
-            if (gameEngine != null) {
-                gameEngine.awardCodexReward(40, 30);
+            // Recompensa solo la primera vez que aciertas cada pregunta
+            if (gameEngine != null && gameEngine.awardCodexReward("quiz." + quizIndex, 40, 30)) {
+                lblQuizScore.setText("🏆 Racha de Aciertos: " + correctStreak + "   (+40 XP, +30 Oro)");
                 if (onStateUpdated != null) onStateUpdated.run();
             }
         } else {

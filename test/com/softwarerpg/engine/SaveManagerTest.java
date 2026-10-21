@@ -27,8 +27,8 @@ class SaveManagerTest {
         g.startMission(g.getMissions().get(0), QUIET);
         while (!g.getCurrentBattle().isBattleOver()) g.getCurrentBattle().actionWriteCode();
         g.registerPIP("Revisar con checklist antes de compilar");
-        g.buyDesignTemplate();
-        g.getOrg().upgradeBSI();
+        g.upgradeOrg(MoProSoftOrg.Area.GER);
+        g.awardCodexReward("quiz.3", 40, 30);
         g.trainTeamMemberPSP(g.getTeam().get(2));
         return g;
     }
@@ -51,13 +51,12 @@ class SaveManagerTest {
         assertEquals(a.getPspLevel(), b.getPspLevel());
         assertEquals(a.getCmmiLevel(), b.getCmmiLevel());
         assertEquals(a.getChecklists(), b.getChecklists());
-        assertEquals(a.getDesignTemplates(), b.getDesignTemplates());
         assertEquals(a.getPipIdeas(), b.getPipIdeas());
 
         assertEquals(original.getOrg().getCompanyName(), loaded.getOrg().getCompanyName());
-        assertEquals(original.getOrg().getBudget(), loaded.getOrg().getBudget());
-        assertEquals(original.getOrg().getInfrastructureLevel(), loaded.getOrg().getInfrastructureLevel());
-        assertEquals(original.getOrg().getProcessPoints(), loaded.getOrg().getProcessPoints());
+        assertEquals(2, loaded.getOrg().getLevel(MoProSoftOrg.Area.GER));
+        assertEquals(1, loaded.getOrg().getLevel(MoProSoftOrg.Area.DIR));
+        assertTrue(loaded.getCodexRewarded().contains("quiz.3"), "las preguntas ya premiadas no vuelven a pagar");
 
         assertEquals(original.getTeam().get(2).getPspTraining(), loaded.getTeam().get(2).getPspTraining());
         assertTrue(loaded.getMissions().get(0).isCompleted());

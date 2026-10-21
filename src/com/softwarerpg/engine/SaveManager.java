@@ -53,32 +53,24 @@ public final class SaveManager {
         p.setProperty("hero.psp", h.getPspLevel().name());
         p.setProperty("hero.cmmi", h.getCmmiLevel().name());
         p.setProperty("hero.checklists", String.valueOf(h.getChecklists()));
-        p.setProperty("hero.templates", String.valueOf(h.getDesignTemplates()));
         List<String> ideas = h.getPipIdeas();
         p.setProperty("pip.count", String.valueOf(ideas.size()));
         for (int i = 0; i < ideas.size(); i++) p.setProperty("pip." + i, ideas.get(i));
 
         MoProSoftOrg o = engine.getOrg();
         p.setProperty("org.name", o.getCompanyName());
-        p.setProperty("org.capability", String.valueOf(o.getCapabilityLevel()));
-        p.setProperty("org.budget", String.valueOf(o.getBudget()));
-        p.setProperty("org.dir", String.valueOf(o.getDirLevel()));
-        p.setProperty("org.rh", String.valueOf(o.getHumanResourcesLevel()));
-        p.setProperty("org.bsi", String.valueOf(o.getInfrastructureLevel()));
-        p.setProperty("org.co", String.valueOf(o.getKnowledgeBaseLevel()));
-        p.setProperty("org.ope", String.valueOf(o.getOpeLevel()));
-        p.setProperty("org.points", String.valueOf(o.getProcessPoints()));
-        p.setProperty("org.focus", o.getStrategicFocus());
+        p.setProperty("org.dir", String.valueOf(o.getLevel(MoProSoftOrg.Area.DIR)));
+        p.setProperty("org.ger", String.valueOf(o.getLevel(MoProSoftOrg.Area.GER)));
+        p.setProperty("org.ope", String.valueOf(o.getLevel(MoProSoftOrg.Area.OPE)));
 
         List<TeamMember> team = engine.getTeam();
         for (int i = 0; i < team.size(); i++) {
             TeamMember m = team.get(i);
             p.setProperty("team." + i + ".psp", m.getPspTraining().name());
-            p.setProperty("team." + i + ".energy", String.valueOf(m.getEnergy()));
-            p.setProperty("team." + i + ".maxEnergy", String.valueOf(m.getMaxEnergy()));
         }
 
         p.setProperty("practiceHunts", String.valueOf(engine.getPracticeHunts()));
+        p.setProperty("codex.rewarded", String.join(",", engine.getCodexRewarded()));
 
         List<Mission> missions = engine.getMissions();
         for (int i = 0; i < missions.size(); i++) {
@@ -126,27 +118,24 @@ public final class SaveManager {
         Hero h = engine.getHero();
         h.restoreState(integer(p, "hero.hp"), integer(p, "hero.maxHp"), integer(p, "hero.mp"), integer(p, "hero.maxMp"),
                 integer(p, "hero.level"), integer(p, "hero.xp"), integer(p, "hero.gold"),
-                integer(p, "hero.checklists"), integer(p, "hero.templates"));
+                integer(p, "hero.checklists"));
         h.setPspLevel(PSPLevel.valueOf(text(p, "hero.psp")));
         h.setCmmiLevel(CMMILevel.valueOf(text(p, "hero.cmmi")));
         for (int i = 0; i < integer(p, "pip.count"); i++) h.addPipIdea(text(p, "pip." + i));
 
-        int dirLvl = Integer.parseInt(p.getProperty("org.dir", "1").trim());
-        int opeLvl = Integer.parseInt(p.getProperty("org.ope", "1").trim());
-        engine.getOrg().restoreState(integer(p, "org.capability"), integer(p, "org.budget"), integer(p, "org.rh"),
-                integer(p, "org.bsi"), integer(p, "org.co"), integer(p, "org.points"), dirLvl, opeLvl);
-        if (p.getProperty("org.focus") != null) {
-            engine.getOrg().setStrategicFocus(p.getProperty("org.focus"));
-        }
+        // Partidas anteriores sin estas claves empiezan con la organización en nivel 1
+        engine.getOrg().restoreState(optional(p, "org.dir", 1), optional(p, "org.ger", 1), optional(p, "org.ope", 1));
 
         List<TeamMember> team = engine.getTeam();
         for (int i = 0; i < team.size(); i++) {
             if (p.getProperty("team." + i + ".psp") == null) continue;
-            team.get(i).restoreState(PSPLevel.valueOf(text(p, "team." + i + ".psp")),
-                    integer(p, "team." + i + ".energy"), integer(p, "team." + i + ".maxEnergy"));
+            team.get(i).restoreState(PSPLevel.valueOf(text(p, "team." + i + ".psp")));
         }
 
-        engine.setPracticeHunts(Integer.parseInt(p.getProperty("practiceHunts", "0").trim()));
+        engine.setPracticeHunts(optional(p, "practiceHunts", 0));
+        for (String key : p.getProperty("codex.rewarded", "").split(",")) {
+            if (!key.isBlank()) engine.getCodexRewarded().add(key.trim());
+        }
 
         for (Mission m : engine.getMissions()) {
             m.setCompleted(Boolean.parseBoolean(p.getProperty("mission." + m.getId() + ".completed", "false")));
@@ -176,5 +165,10 @@ public final class SaveManager {
         } catch (NumberFormatException e) {
             throw new IOException("Partida dañada: '" + key + "' no es un número.", e);
         }
+    }
+
+    /** Número opcional (claves agregadas en versiones nuevas del juego). */
+    private static int optional(Properties p, String key, int defaultValue) throws IOException {
+        return p.getProperty(key) == null ? defaultValue : integer(p, key);
     }
 }

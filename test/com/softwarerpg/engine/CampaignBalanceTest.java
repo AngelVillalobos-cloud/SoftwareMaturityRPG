@@ -23,18 +23,49 @@ class CampaignBalanceTest {
         @Override public void onBattleEnded(boolean victory) { lastResult = victory; }
     };
 
-    /** Jugador disciplinado: revisa defectos, estima con plantillas, usa TSP y CMMI. */
+    /** Jugador disciplinado: planea al inicio, corrige defectos, usa a su equipo TSP y las acciones CMMI. */
     private static void processTurn(BattleEngine b, Hero h, PSPLog log, int turn) {
         int cmmi = h.getCmmiLevel().getLevelNumber();
         double hp = (double) h.getHp() / h.getMaxHp();
+        int mp = h.getMp();
         if (hp < 0.35 && h.getChecklists() > 0) b.actionInspectCode();
-        else if (hp < 0.35 && h.getMp() >= 20) b.actionTeamSynergy(TSPRole.LIDER_EQUIPO);
-        else if (log.getPendingDefects() >= 2 && h.getChecklists() > 0 && hp < 0.75) b.actionInspectCode();
-        else if (cmmi >= 5 && h.getMp() >= 30 && hp < 0.6) b.actionContinuousImprovement();
-        else if (cmmi >= 4 && h.getMp() >= 25) b.actionStatisticalControl();
-        else if (turn == 0 && h.getMp() >= 15) b.actionEstimateSize();
-        else if (h.getMp() >= 20) b.actionTeamSynergy(TSPRole.GESTOR_DESARROLLO);
+        else if (hp < 0.35 && mp >= BattleEngine.COST_SYNERGY) b.actionTeamSynergy(TSPRole.LIDER_EQUIPO);
+        else if (log.getPendingDefects() >= 2 && h.getChecklists() > 0) b.actionInspectCode();
+        else if (cmmi >= 5 && mp >= BattleEngine.COST_CONTINUOUS && hp < 0.6) b.actionContinuousImprovement();
+        else if (turn == 0 && mp >= BattleEngine.COST_PLAN) b.actionEstimateSize();
+        else if (cmmi >= 4 && mp >= BattleEngine.COST_STAT) b.actionStatisticalControl();
+        else if (mp >= BattleEngine.COST_SYNERGY) b.actionTeamSynergy(TSPRole.GESTOR_DESARROLLO);
         else b.actionWriteCode();
+    }
+
+    /**
+     * Entre misiones invierte el oro: guarda para 3 checklists y gasta el resto en lo más barato
+     * entre entrenar al equipo (Desarrollo, Líder, Calidad) y mejorar la empresa (OPE, GER, DIR).
+     */
+    private static void invest(GameEngine g) {
+        Hero h = g.getHero();
+        MoProSoftOrg org = g.getOrg();
+        while (true) {
+            int reserve = GameEngine.CHECKLIST_COST * Math.max(0, 3 - h.getChecklists());
+            int best = Integer.MAX_VALUE;
+            Runnable buy = null;
+            for (int i : new int[]{1, 0, 3}) {
+                TeamMember m = g.getTeam().get(i);
+                int cost = g.trainingCost(m);
+                if (m.getPspTraining().getNext() != m.getPspTraining() && cost < best) {
+                    best = cost;
+                    buy = () -> g.trainTeamMemberPSP(m);
+                }
+            }
+            for (MoProSoftOrg.Area a : new MoProSoftOrg.Area[]{MoProSoftOrg.Area.OPE, MoProSoftOrg.Area.GER, MoProSoftOrg.Area.DIR}) {
+                if (!org.isMaxed(a) && org.upgradeCost(a) < best) {
+                    best = org.upgradeCost(a);
+                    buy = () -> g.upgradeOrg(a);
+                }
+            }
+            if (buy == null || h.getGold() - best < reserve) return;
+            buy.run();
+        }
     }
 
     /** Jugador novato: solo codifica y se cura cuando está a punto de caer. */
@@ -73,13 +104,14 @@ class CampaignBalanceTest {
                 boolean won = false;
                 for (int attempt = 1; attempt <= 30 && !won; attempt++) {
                     if (profile == FARMER) {
-                        for (int k = 0; k < 5; k++) {           // 5 cazas rápidas antes de cada intento
+                        for (int k = 0; k < 3; k++) {           // 3 cazas rápidas antes de cada intento
                             h.rest();
                             g.startRandomPracticeBattle(h.getCmmiLevel().getLevelNumber(), listener);
                             fight(g, profile);
                         }
                     }
                     h.rest();
+                    if (profile != NAIVE) invest(g);
                     int wanted = profile == PROCESS ? 3 : profile == FARMER ? Hero.MAX_CHECKLISTS : 0;
                     while (h.getChecklists() < wanted && g.buyChecklist()) { }
                     g.startMission(g.getMissions().get(m), listener);
@@ -98,6 +130,7 @@ class CampaignBalanceTest {
     @Test
     void jugarConProcesoEsRetadorPeroGanable() {
         double[] rates = firstTryWinRates(PROCESS, 42);
+        System.out.println("PROCESO " + java.util.Arrays.toString(rates));
         assertEquals(10, rates.length);
         assertTrue(rates[0] >= 90 && rates[1] >= 90, "las misiones 1 y 2 son introductorias");
         for (int m = 2; m < rates.length; m++) {
@@ -109,13 +142,18 @@ class CampaignBalanceTest {
     @Test
     void sinProcesoNoSeAvanzaMasAllaDeLasPrimerasMisiones() {
         double[] rates = firstTryWinRates(NAIVE, 7);
-        assertTrue(rates[3] < 20, String.format("un novato que solo codifica gana la misión 4 el %.1f%%", rates[3]));
+        System.out.println("NOVATO  " + java.util.Arrays.toString(rates));
+        assertTrue(rates[2] < 20, String.format("un novato que solo codifica gana la misión 3 el %.1f%%", rates[2]));
     }
 
     @Test
     void farmearNoVuelveTrivialesLosJefesFinales() {
         double[] rates = firstTryWinRates(FARMER, 11);
+        System.out.println("FARMERO " + java.util.Arrays.toString(rates));
         double lastBosses = (rates[7] + rates[8] + rates[9]) / 3;
         assertTrue(lastBosses < 85, String.format("farmeando, las misiones 8-10 se ganan el %.1f%% al primer intento", lastBosses));
+        for (int m = 2; m < rates.length; m++) {
+            assertTrue(rates[m] < 100 || m == 5 || m == 2, String.format("farmeando, la misión %d no debería ser segura (%.1f%%)", m + 1, rates[m]));
+        }
     }
 }

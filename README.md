@@ -78,15 +78,23 @@ java -cp bin com.softwarerpg.Main
 ## 🎮 Loop de juego
 
 1. En **Campaña CMMI** despliega la misión marcada como **⭐ SIGUIENTE MISIÓN** (las demás se desbloquean en orden).
-2. En **Combate RPG**, *Codifica* para dañar al defecto. Si tu salud baja, usa la *Checklist PSP* o la *Sinergia del Líder*. Cada botón muestra su costo y, al pasar el ratón, su efecto.
-3. Al terminar aparece el letrero de **¡VICTORIA!** o **¡PERDISTE!** con el resumen Post-Mortem PSP (tamaño y tiempo estimado vs. real, defectos, Dd y yield). En derrota puedes reintentar.
-4. Con el oro compra checklists y plantillas, mejora tu organización (MoProSoft) y entrena a tu equipo (TSP).
+2. En **Combate RPG**:
+   - **📐 Planear y Diseñar** (10 MP, una vez por proyecto): úsalo al inicio. Tus 3 siguientes ataques hacen +30% de daño y tus 3 siguientes codificaciones no inyectan defectos.
+   - **💻 Codificar**: hace daño y te da +8 MP, pero puede inyectar defectos. Cada defecto pendiente hace que el cliente te pegue más fuerte.
+   - **📋 Checklist PSP**: cura y corrige hasta 3 defectos pendientes.
+   - **🤝 Sinergia TSP** (20 MP): pide ayuda a un rol de tu equipo: curar, atacar, reducir el daño, corregir defectos o prevenirlos.
+   - **📊 Control Estadístico** (CMMI 4) y **🚀 Mejora Continua** (CMMI 5): se desbloquean al vencer a los jefes, y los jefes siguientes las necesitan.
+3. Al terminar aparece el letrero de **¡VICTORIA!** o **¡PERDISTE!** con el post-mortem PSP (tamaño y tiempo estimado contra el real, defectos, Dd y yield). En derrota puedes reintentar. Entregar **sin defectos pendientes** paga +20% de oro.
+4. Con el oro: compra checklists, **entrena a tu equipo** (Gremio TSP: sus sinergias se vuelven más fuertes) y **mejora tu empresa** (Org. MoProSoft: DIR = más oro, GER = menos daño, OPE = más daño y menos defectos).
+
+Solo hay una moneda: el **oro**. La salud y el MP se restauran solos al terminar cada combate.
 
 La campaña tiene **10 misiones** (dos por nivel CMMI: una intermedia y el jefe que te asciende). El oro es escaso a propósito:
 
-- Repetir una misión ya completada paga el **25%**; cada *Caza Rápida* paga la mitad que la anterior (se renueva al completar una misión nueva) y sus bugs escalan con tu nivel.
+- Repetir una misión ya completada paga el **25%**. Cada *Caza Rápida* paga la mitad que la anterior y vuelve al 100% solo al subir de nivel CMMI.
 - Máximo **5 checklists** en el inventario; dentro de un mismo combate cada revisión extra cura menos.
-- Entrenar al equipo TSP cuesta más en cada nivel.
+- Entrenar al equipo y mejorar la empresa tienen nivel máximo: farmear de más no sirve.
+- El Códice paga XP y oro **una sola vez** por tarjeta o pregunta; la primera idea del PIP después de cada proyecto da +25 XP.
 
 ## 💾 Partidas guardadas
 
@@ -94,4 +102,4 @@ La partida se guarda sola al terminar cada combate y también desde el menú **P
 
 ## 🧪 Pruebas
 
-`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 200 campañas completas de las 10 misiones con tres perfiles: un jugador que aplica el proceso (checklists, estimación, TSP, CMMI) gana las misiones 3 a 10 entre 50% y 90% al primer intento; uno que solo codifica no pasa de la misión 4; y uno que "farmea" oro con cazas rápidas no puede aplanar las misiones finales. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.
+`test/` contiene pruebas JUnit 5 del motor de combate, la bitácora PSP, el guardado y una **prueba de balance** que simula 200 campañas completas de las 10 misiones con tres perfiles: un jugador que aplica el proceso (planea, corrige defectos, usa su equipo TSP, invierte en MoProSoft y usa las acciones CMMI) gana las misiones 3 a 10 entre 50% y 90% al primer intento; uno que solo codifica se atora en la misión 3; y uno que "farmea" oro con cazas rápidas no puede aplanar las misiones finales. Si cambias las estadísticas de `GameData`, ejecuta las pruebas para confirmar que el balance sigue en rango.

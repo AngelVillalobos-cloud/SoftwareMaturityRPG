@@ -88,17 +88,8 @@ public final class PSPLogPanel extends JPanel {
         JPanel buttonsBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttonsBar.setOpaque(false);
 
-        JButton btnAudit = Theme.createStyledButton("🔍 Auditar Bitácora", Theme.ACCENT_GREEN);
-        btnAudit.setToolTipText("Revisa tus registros de tiempo y defectos: recupera +30 MP, +20 HP y bono por Cero Defectos.");
-        btnAudit.addActionListener(e -> {
-            String result = gameEngine.auditPspLog();
-            JOptionPane.showMessageDialog(this, result, "Auditoría de Bitácora PSP", JOptionPane.INFORMATION_MESSAGE);
-            updateTables();
-            onStateUpdated.run();
-        });
-
         JButton btnAnalyze = Theme.createStyledButton("🧠 Analizar Patrones", Theme.ACCENT_AMBER);
-        btnAnalyze.setToolTipText("Descubre tu defecto Chillarege más recurrente y aplica una regla de prevención.");
+        btnAnalyze.setToolTipText("Muestra el tipo de defecto (10 a 100) que más se repite en el proyecto actual.");
         btnAnalyze.addActionListener(e -> {
             String result = gameEngine.analyzeDefectPatterns();
             JOptionPane.showMessageDialog(this, result, "Análisis de Patrones de Defectos", JOptionPane.INFORMATION_MESSAGE);
@@ -107,10 +98,9 @@ public final class PSPLogPanel extends JPanel {
         });
 
         JButton btnAddPip = Theme.createStyledButton("✍️ Registrar en PIP", Theme.ACCENT_PURPLE);
-        btnAddPip.setToolTipText("Añade una propuesta al Plan de Mejora Personal.");
+        btnAddPip.setToolTipText("Añade una idea al Plan de Mejora Personal. La primera idea después de cada proyecto da +" + GameEngine.PIP_XP + " XP.");
         btnAddPip.addActionListener(e -> showAddPipDialog());
 
-        buttonsBar.add(btnAudit);
         buttonsBar.add(btnAnalyze);
         buttonsBar.add(btnAddPip);
 
@@ -274,18 +264,13 @@ public final class PSPLogPanel extends JPanel {
             JOptionPane.PLAIN_MESSAGE
         );
         if (idea != null && !idea.trim().isEmpty()) {
-            boolean registered = gameEngine.registerPIP(idea.trim());
-            if (registered) {
-                JOptionPane.showMessageDialog(this,
-                    "¡Mejora registrada con éxito!\nHas reflexionado en tu proceso personal: +25 HP restaurados y +25 puntos organizacionales.",
-                    "PIP Registrado", JOptionPane.INFORMATION_MESSAGE);
-                updateTables();
-                onStateUpdated.run();
-            } else {
-                JOptionPane.showMessageDialog(this,
-                    "No tienes suficiente disciplina (Requiere 20 MP para reflexionar en el PIP).",
-                    "Esfuerzo Insuficiente", JOptionPane.WARNING_MESSAGE);
-            }
+            int xp = gameEngine.registerPIP(idea.trim());
+            JOptionPane.showMessageDialog(this,
+                xp > 0 ? "¡Mejora registrada! Reflexionar sobre tu último proyecto te da +" + xp + " XP."
+                       : "Mejora registrada en tu PIP.\n(La XP se gana con la primera idea después de cada proyecto terminado.)",
+                "PIP Registrado", JOptionPane.INFORMATION_MESSAGE);
+            updateTables();
+            onStateUpdated.run();
         }
     }
 
@@ -299,9 +284,9 @@ public final class PSPLogPanel extends JPanel {
                 + "Clasifica los bugs con la taxonomía oficial de Chillarege / IBM (10 Doc, 20 Sintaxis, 40 Asignación, 80 Lógica, etc.). "
                 + "Registra en qué fase se inyectó y en cuál se eliminó.</p>"
                 + "<p><b>3. Utilidades en el Juego:</b><br>"
-                + "• <b>🔍 Auditar Bitácora:</b> Otorga +30 MP, +20 HP y monedas de oro si terminas con 0 defectos pendientes.<br>"
-                + "• <b>🧠 Analizar Patrones:</b> Identifica tu debilidad recurrente para ganar +30 XP y prevención.<br>"
-                + "• <b>✍️ PIP:</b> Registrar ideas de mejora personal te cura +25 HP y suma puntos de proceso organizacionales.</p>"
+                + "• <b>🧠 Analizar Patrones:</b> muestra el tipo de defecto que más se repite, para saber qué revisar.<br>"
+                + "• <b>✍️ PIP:</b> registra ideas de mejora personal. La primera idea después de cada proyecto da +" + GameEngine.PIP_XP + " XP.<br>"
+                + "• Entregar un proyecto <b>sin defectos pendientes</b> (yield 100%) paga +20% de oro.</p>"
                 + "<p style='color: #4ADE80;'><b>Fórmula clave:</b> Dd = 1000 × (Defectos / LOC). Un menor Dd y mayor Yield reflejan tu madurez como ingeniero.</p>"
                 + "</body></html>";
         JOptionPane.showMessageDialog(this, msg, "Guía Didáctica de Bitácora PSP", JOptionPane.INFORMATION_MESSAGE);

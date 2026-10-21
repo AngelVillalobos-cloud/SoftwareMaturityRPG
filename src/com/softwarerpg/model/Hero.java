@@ -23,7 +23,6 @@ public class Hero {
 
     // Recursos de calidad adquiridos
     private int checklists;       // Listas de chequeo PSP 2
-    private int designTemplates;  // Plantillas de diseño PSP 2.1
     private final List<String> pipIdeas = new ArrayList<>(); // Plan de Mejora Personal (PIP)
 
     /** Máximo de checklists en el inventario. */
@@ -41,7 +40,6 @@ public class Hero {
         this.pspLevel = PSPLevel.PSP0;
         this.cmmiLevel = CMMILevel.NIVEL_1;
         this.checklists = 2;
-        this.designTemplates = 1;
     }
 
     public void addXp(int amount) {
@@ -95,7 +93,7 @@ public class Hero {
 
     /** Restaura las estadísticas numéricas al cargar una partida guardada. */
     public void restoreState(int hp, int maxHp, int mp, int maxMp, int level, int xp, int gold,
-                             int checklists, int designTemplates) {
+                             int checklists) {
         this.maxHp = maxHp;
         this.hp = Math.min(hp, maxHp);
         this.maxMp = maxMp;
@@ -103,8 +101,7 @@ public class Hero {
         this.level = level;
         this.xp = xp;
         this.gold = gold;
-        this.checklists = checklists;
-        this.designTemplates = designTemplates;
+        this.checklists = Math.min(MAX_CHECKLISTS, checklists);
     }
 
     public void rest() {
@@ -131,9 +128,6 @@ public class Hero {
     public int getChecklists() { return checklists; }
     public void addChecklists(int qty) { this.checklists = Math.min(MAX_CHECKLISTS, this.checklists + qty); }
     public void useChecklist() { if (checklists > 0) checklists--; }
-    public int getDesignTemplates() { return designTemplates; }
-    public void addDesignTemplates(int qty) { this.designTemplates += qty; }
-    public void useDesignTemplate() { if (designTemplates > 0) designTemplates--; }
     public int getPipCount() { return pipIdeas.size(); }
     public List<String> getPipIdeas() { return Collections.unmodifiableList(pipIdeas); }
     public void addPipIdea(String idea) { pipIdeas.add(idea); }

@@ -48,21 +48,20 @@ class GameEngineTest {
     }
 
     @Test
-    void repetirUnaMisionCompletadaPagaUnCuartoYNoDaPuntosDeProceso() {
+    void repetirUnaMisionCompletadaPagaUnCuarto() {
         GameEngine g = new GameEngine("H", "O", new FixedRandom(0.5));
         win(g, 0);
         int gold = g.getHero().getGold();
-        int points = g.getOrg().getProcessPoints();
         int fullGold = g.getMissions().get(0).getBossEnemy().getGoldReward();
 
         win(g, 0);
 
-        assertEquals(Math.round(fullGold * GameEngine.REPEAT_MISSION_REWARD), g.getHero().getGold() - gold);
-        assertTrue(g.getOrg().getProcessPoints() - points < 30, "sin los puntos de proceso de la misión");
+        // FixedRandom(0.5) no inyecta defectos: siempre aplica el bono de calidad (+20%)
+        assertEquals(Math.round(fullGold * GameEngine.REPEAT_MISSION_REWARD * 1.2), g.getHero().getGold() - gold);
     }
 
     @Test
-    void lasCazasRapidasPaganCadaVezMenosHastaCompletarUnaMisionNueva() {
+    void lasCazasRapidasPaganCadaVezMenosHastaSubirDeNivelCmmi() {
         GameEngine g = new GameEngine("H", "O", new FixedRandom(0.5));
         assertEquals(1.0, g.getPracticeRewardMultiplier(), 1e-9);
         g.startRandomPracticeBattle(1, QUIET);
@@ -71,8 +70,10 @@ class GameEngineTest {
         assertEquals(0.25, g.getPracticeRewardMultiplier(), 1e-9);
 
         win(g, 0);
+        assertEquals(0.25, g.getPracticeRewardMultiplier(), 1e-9, "la misión intermedia no renueva las cazas");
 
-        assertEquals(1.0, g.getPracticeRewardMultiplier(), 1e-9, "una misión nueva renueva las cazas");
+        win(g, 1); // jefe del nivel 1
+        assertEquals(1.0, g.getPracticeRewardMultiplier(), 1e-9, "subir de nivel CMMI renueva las cazas");
     }
 
     @Test
@@ -97,69 +98,89 @@ class GameEngineTest {
     }
 
     @Test
-    void registrarPipGuardaLaIdeaYRechazaIdeasVacias() {
-        GameEngine g = new GameEngine("H", "O");
+    void registrarPipGuardaLaIdeaYSoloPagaXpUnaVezPorProyecto() {
+        GameEngine g = new GameEngine("H", "O", new FixedRandom(0.5));
 
-        assertFalse(g.registerPIP("   "));
-        assertTrue(g.registerPIP("Usar checklist antes de compilar"));
+        assertEquals(-1, g.registerPIP("   "));
+        assertEquals(0, g.registerPIP("Antes de jugar no hay proyecto que analizar"));
 
-        assertEquals(1, g.getHero().getPipCount());
-        assertEquals("Usar checklist antes de compilar", g.getHero().getPipIdeas().get(0));
+        win(g, 0);
+        int xp = g.getHero().getXp();
+        assertEquals(GameEngine.PIP_XP, g.registerPIP("Usar checklist antes de compilar"));
+        assertEquals(0, g.registerPIP("Otra idea del mismo proyecto"));
+        assertEquals(xp + GameEngine.PIP_XP, g.getHero().getXp());
+
+        assertEquals(3, g.getHero().getPipCount());
+        assertEquals("Usar checklist antes de compilar", g.getHero().getPipIdeas().get(1));
     }
 
     @Test
-    void cazaRapidaEscalaAlPasarNivelCMMI() {
+    void lasRecompensasDelCodiceSoloSeDanUnaVezPorTarjeta() {
         GameEngine g = new GameEngine("H", "O");
-        assertEquals(1.0, g.getPracticeBaseMultiplier(), 1e-9);
+        int gold = g.getHero().getGold();
 
-        // Ascender a CMMI 2
-        g.getHero().setCmmiLevel(CMMILevel.NIVEL_2);
-        assertTrue(g.getPracticeBaseMultiplier() > 1.0, "al pasar de nivel CMMI, la recompensa base supera el 100%");
-        assertEquals(1.25, g.getPracticeBaseMultiplier(), 1e-9);
+        assertTrue(g.awardCodexReward("quiz.0", 40, 30));
+        assertFalse(g.awardCodexReward("quiz.0", 40, 30), "repetir la misma pregunta no paga");
+        assertTrue(g.awardCodexReward("quiz.1", 40, 30));
 
-        // Ascender a CMMI 3
-        g.getHero().setCmmiLevel(CMMILevel.NIVEL_3);
-        assertEquals(1.50, g.getPracticeBaseMultiplier(), 1e-9);
+        assertEquals(gold + 60, g.getHero().getGold());
     }
 
     @Test
-    void cazaRapidaBonoCeroDefectosPasaDelCienPorCiento() {
-        GameEngine g = new GameEngine("H", "O");
-        g.setZeroDefectsStreak(true);
+    void elAnalisisDePatronesNoDaRecompensas() {
+        GameEngine g = new GameEngine("H", "O", new FixedRandom(0.0)); // siempre inyecta defectos
+        g.startMission(g.getMissions().get(0), QUIET);
+        g.getCurrentBattle().actionWriteCode();
+        int xp = g.getHero().getXp(), gold = g.getHero().getGold();
 
-        assertTrue(g.getPracticeBaseMultiplier() > 1.0);
-        assertEquals(1.50, g.getPracticeBaseMultiplier(), 1e-9, "con bono de calidad total (cero defectos), la recompensa sube al 150%");
+        String report = g.analyzeDefectPatterns();
+
+        assertTrue(report.contains("Tipo"));
+        assertEquals(xp, g.getHero().getXp());
+        assertEquals(gold, g.getHero().getGold());
     }
 
     @Test
-    void auditoriaDeBitacoraPspRecuperaMpYSalud() {
+    void lasMejorasMoProSoftSePaganConOroYSubenLaCapacidad() {
         GameEngine g = new GameEngine("H", "O");
-        g.getHero().takeDamage(40);
-        g.getHero().consumeMp(30);
+        MoProSoftOrg org = g.getOrg();
+        g.getHero().addGold(10_000);
+        int gold = g.getHero().getGold();
+        assertEquals(1, org.getCapabilityLevel());
 
-        int hpAntes = g.getHero().getHp();
-        int mpAntes = g.getHero().getMp();
-        String reporte = g.auditPspLog();
+        assertTrue(g.upgradeOrg(MoProSoftOrg.Area.DIR));
+        assertEquals(gold - 150, g.getHero().getGold(), "el primer nivel cuesta 150 de oro");
+        assertTrue(org.getGoldMultiplier() > 1.0);
 
-        assertTrue(g.getHero().getHp() > hpAntes, "la auditoría recupera salud");
-        assertTrue(g.getHero().getMp() > mpAntes, "la auditoría recupera disciplina MP");
-        assertNotNull(reporte);
+        assertTrue(g.upgradeOrg(MoProSoftOrg.Area.OPE));
+        assertTrue(org.getCodingDamageBonus() > 0);
+        assertTrue(org.getDefectReduction() > 0);
+        assertTrue(g.upgradeOrg(MoProSoftOrg.Area.GER));
+        assertTrue(org.getDamageReduction() > 0);
+
+        for (MoProSoftOrg.Area a : MoProSoftOrg.Area.values()) g.upgradeOrg(a);
+        assertEquals(5, org.getCapabilityLevel(), "todas las categorías al máximo = Optimizado");
+        assertFalse(g.upgradeOrg(MoProSoftOrg.Area.DIR), "no pasa del nivel máximo");
     }
 
     @Test
-    void mejorasDeMoProSoftDirYOpeAumentanNivelesYBeneficios() {
+    void sinOroNoSePuedeMejorarLaOrganizacion() {
         GameEngine g = new GameEngine("H", "O");
-        assertEquals(1, g.getOrg().getDirLevel());
-        assertEquals(1, g.getOrg().getOpeLevel());
+        g.getHero().spendGold(g.getHero().getGold());
+        assertFalse(g.upgradeOrg(MoProSoftOrg.Area.GER));
+        assertEquals(1, g.getOrg().getLevel(MoProSoftOrg.Area.GER));
+    }
 
-        assertTrue(g.getOrg().upgradeDIR());
-        assertEquals(2, g.getOrg().getDirLevel());
-        assertTrue(g.getOrg().getBudgetMultiplier() > 1.0, "DIR aumenta el multiplicador de presupuesto");
+    @Test
+    void entrenarAUnMiembroHaceMasFuerteSuSinergia() {
+        GameEngine g = new GameEngine("H", "O");
+        g.getHero().addGold(1000);
+        TeamMember m = g.getTeam().get(1); // Gestor de Desarrollo
+        double before = BattleEngine.synergyPower(m);
 
-        assertTrue(g.getOrg().upgradeOPE());
-        assertEquals(2, g.getOrg().getOpeLevel());
-        assertTrue(g.getOrg().getOperationAttackBonus() > 0, "OPE otorga bono de daño técnico");
-        assertTrue(g.getOrg().getDefectReductionFactor() > 0, "OPE reduce la tasa de defectos");
+        assertTrue(g.trainTeamMemberPSP(m));
+
+        assertEquals(before + 0.10, BattleEngine.synergyPower(m), 1e-9);
     }
 
     @Test

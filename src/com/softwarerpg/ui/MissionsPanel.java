@@ -52,10 +52,11 @@ public final class MissionsPanel extends JPanel {
         JLabel infoLabel = new JLabel("<html><body style='width: 640px; color: #D1D5DB;'>"
                 + "<b style='color:#FBBF24;'>¿Cómo se juega?</b> "
                 + "<b>1)</b> Despliega la <b>⭐ siguiente misión</b>. "
-                + "<b>2)</b> En combate <b>Codifica</b> para dañar al defecto; si tu salud baja usa la <b>Checklist PSP</b> "
-                + "o la <b>Sinergia del Líder</b>. "
-                + "<b>3)</b> Al ganar subes de nivel CMMI y se desbloquea la siguiente misión. "
-                + "<b>4)</b> Con el oro compra checklists y mejora tu organización (MoProSoft) y tu equipo (TSP)."
+                + "<b>2)</b> En combate <b>Codifica</b> para hacer daño y ganar MP; gasta el MP en <b>Planear</b> o en tu <b>equipo TSP</b>. "
+                + "Si tu salud baja o se acumulan defectos, usa una <b>Checklist PSP</b>. "
+                + "<b>3)</b> Vencer al jefe de cada nivel te sube de nivel CMMI y desbloquea nuevas acciones. "
+                + "<b>4)</b> Invierte el oro en checklists, en entrenar a tu equipo (TSP) y en tu empresa (MoProSoft). "
+                + "<i>Entregar sin defectos pendientes paga +20% de oro.</i>"
                 + "</body></html>");
         infoLabel.setFont(Theme.FONT_REGULAR);
         topContent.add(infoLabel, BorderLayout.CENTER);
@@ -79,27 +80,13 @@ public final class MissionsPanel extends JPanel {
             }
         });
 
-        JButton btnBuyTemplate = Theme.createStyledButton("📐 Comprar Plantilla Diseño (" + GameEngine.TEMPLATE_COST + " Oro)", Theme.ACCENT_PURPLE);
-        btnBuyTemplate.setToolTipText("Se usa al hacer Estimación LOC en combate: las próximas 3 codificaciones no inyectan defectos.");
-        btnBuyTemplate.addActionListener(e -> {
-            if (gameEngine.buyDesignTemplate()) {
-                Sound.play(Sound.Sfx.COIN);
-                JOptionPane.showMessageDialog(this, "¡Plantilla de Diseño PSP 2.1 adquirida!\nSe usará en tu próxima Estimación LOC: 3 codificaciones sin defectos.", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
-                onStateUpdated.run();
-            } else {
-                Sound.play(Sound.Sfx.ERROR);
-                JOptionPane.showMessageDialog(this, "Oro insuficiente.", "Error", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
-        for (JButton b : new JButton[]{btnBuyChecklist, btnBuyTemplate}) b.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
+        btnBuyChecklist.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
 
         btnQuickBug = Theme.createStyledButton("👾 Caza Rápida de Bugs", Theme.ACCENT_AMBER);
-        btnQuickBug.setToolTipText("Combate de práctica. Cada caza paga la mitad que la anterior; se renueva al completar una misión nueva.");
+        btnQuickBug.setToolTipText("Combate de práctica. Cada caza paga la mitad que la anterior; vuelve al 100% al subir de nivel CMMI.");
         btnQuickBug.addActionListener(e -> startQuickBattle());
 
         storePanel.add(btnBuyChecklist);
-        storePanel.add(btnBuyTemplate);
         storePanel.add(btnQuickBug);
         topContent.add(storePanel, BorderLayout.SOUTH);
 
@@ -123,11 +110,8 @@ public final class MissionsPanel extends JPanel {
     public void refreshMissions() {
         int practicePct = (int) Math.round(gameEngine.getPracticeRewardMultiplier() * 100);
         btnQuickBug.setText("👾 Caza Rápida (" + practicePct + "% Recompensa)");
-        String bonusInfo = "<html><b>Recompensa de Caza Rápida: " + practicePct + "%</b><br>"
-                + "• Base CMMI: " + Math.round((1.0 + (gameEngine.getHero().getCmmiLevel().getLevelNumber() - 1) * 0.25) * 100) + "%<br>"
-                + (gameEngine.hasZeroDefectsStreak() ? "<span style='color:#4ADE80;'>• ¡Bono Calidad 100% (Cero Defectos): +50%!</span><br>" : "• Bono Calidad 100%: logralo entregando un proyecto sin defectos pendientes.<br>")
-                + "• Rendimiento por farm repetido: decae 50% por caza consecutiva; se renueva al entregar un proyecto nuevo.</html>";
-        btnQuickBug.setToolTipText(bonusInfo);
+        btnQuickBug.setToolTipText("<html>Combate de práctica contra un bug de tu nivel.<br>"
+                + "Cada caza paga la mitad que la anterior; vuelve al 100% al subir de nivel CMMI (vencer al jefe).</html>");
 
         missionsListPanel.removeAll();
         List<Mission> list = gameEngine.getMissions();

@@ -2,17 +2,18 @@ package com.softwarerpg.ui;
 
 import com.softwarerpg.engine.GameEngine;
 import com.softwarerpg.model.MoProSoftOrg;
+import com.softwarerpg.model.MoProSoftOrg.Area;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
- * Panel de la Organización según el modelo mexicano MoProSoft (NMX-I-059-NYCE):
- * - 3 Categorías de Procesos: Alta Dirección (DIR), Gerencia (GER), Operación (OPE).
- * - Recursos de Gerencia: RH (Recursos Humanos), BSI (Bienes, Servicios e Infraestructura), CO (Conocimiento Organizacional).
- * - Niveles de Capacidad (0 al 5) y Roles oficiales.
+ * Panel de la Organización según el modelo mexicano MoProSoft (NMX-I-059-NYCE).
+ * Las 3 categorías de procesos (DIR, GER, OPE) tienen una mejora cada una, con un efecto
+ * claro en el juego. El nivel de capacidad de la organización sube solo con esas mejoras.
  */
 @SuppressWarnings("serial") // Componentes Swing: no se serializan
 public final class MoProSoftPanel extends JPanel {
@@ -21,26 +22,10 @@ public final class MoProSoftPanel extends JPanel {
 
     private JLabel lblOrgName;
     private JLabel lblCapability;
-    private JLabel lblBudget;
-    private JLabel lblProcessPoints;
-
-    private JLabel lblDirLevel;
-    private JLabel lblDirBonus;
-    private JButton btnUpgradeDir;
-    private JComboBox<String> comboFocus;
-
-    private JLabel lblRhLevel;
-    private JLabel lblBsiLevel;
-    private JLabel lblCoLevel;
-
-    private JLabel lblOpeLevel;
-    private JLabel lblOpeBonus;
-    private JButton btnUpgradeOpe;
-
-    private JButton btnUpgradeCapability;
-    private JButton btnUpgradeRh;
-    private JButton btnUpgradeBsi;
-    private JButton btnUpgradeCo;
+    private JLabel lblGold;
+    private final Map<Area, JLabel> levelLabels = new EnumMap<>(Area.class);
+    private final Map<Area, JLabel> effectLabels = new EnumMap<>(Area.class);
+    private final Map<Area, JButton> upgradeButtons = new EnumMap<>(Area.class);
 
     public MoProSoftPanel(GameEngine gameEngine, Runnable onStateUpdated) {
         this.gameEngine = gameEngine;
@@ -53,277 +38,147 @@ public final class MoProSoftPanel extends JPanel {
     }
 
     private void initComponents() {
-        // --- Panel Superior: Estatus Organizacional ---
+        // --- Encabezado: estado de la organización ---
         JPanel topCard = Theme.createCard("🇲🇽 Organización MoProSoft (Norma NMX-I-059-NYCE)");
-        JPanel topGrid = new JPanel(new GridLayout(2, 2, 10, 5));
+        JPanel topContent = new JPanel(new BorderLayout(10, 8));
+        topContent.setOpaque(false);
+
+        JPanel topGrid = new JPanel(new GridLayout(1, 3, 10, 5));
         topGrid.setOpaque(false);
-
-        lblOrgName = new JLabel("Empresa: " + gameEngine.getOrg().getCompanyName());
-        lblOrgName.setFont(Theme.FONT_HEADER);
-        lblOrgName.setForeground(Theme.ACCENT_CYAN);
-
-        lblCapability = new JLabel("Capacidad: " + gameEngine.getOrg().getCapabilityLevelName());
-        lblCapability.setFont(Theme.FONT_HEADER);
-        lblCapability.setForeground(Theme.ACCENT_GREEN);
-
-        lblBudget = new JLabel("💰 Presupuesto Empresarial: " + gameEngine.getOrg().getBudget() + " Monedas");
-        lblBudget.setFont(Theme.FONT_BOLD);
-        lblBudget.setForeground(Theme.ACCENT_AMBER);
-
-        lblProcessPoints = new JLabel("📈 Puntos de Proceso: " + gameEngine.getOrg().getProcessPoints());
-        lblProcessPoints.setFont(Theme.FONT_BOLD);
-        lblProcessPoints.setForeground(Theme.ACCENT_PURPLE);
-
+        lblOrgName = header(Theme.ACCENT_CYAN);
+        lblCapability = header(Theme.ACCENT_GREEN);
+        lblGold = header(Theme.ACCENT_AMBER);
         topGrid.add(lblOrgName);
         topGrid.add(lblCapability);
-        topGrid.add(lblBudget);
-        topGrid.add(lblProcessPoints);
+        topGrid.add(lblGold);
+        topContent.add(topGrid, BorderLayout.NORTH);
 
-        btnUpgradeCapability = Theme.createStyledButton("🏅 Certificar y Subir Nivel de Capacidad MoProSoft", Theme.ACCENT_GREEN);
-        btnUpgradeCapability.addActionListener(e -> upgradeCapability());
-
-        JPanel headerContainer = new JPanel(new BorderLayout(10, 8));
-        headerContainer.setOpaque(false);
-        headerContainer.add(topGrid, BorderLayout.CENTER);
-        headerContainer.add(btnUpgradeCapability, BorderLayout.SOUTH);
-        topCard.add(headerContainer, BorderLayout.CENTER);
-
+        JLabel intro = new JLabel("<html><body style='width: 820px; color: #D1D5DB;'>"
+                + "MoProSoft organiza a una empresa de software en <b>3 categorías de procesos</b>. "
+                + "Invierte el oro de tus proyectos en cada una (máximo nivel " + MoProSoftOrg.MAX_AREA_LEVEL + "). "
+                + "Con cada mejora sube el <b>nivel de capacidad</b> de la organización: de 1 (Realizado) a 5 (Optimizado)."
+                + "</body></html>");
+        intro.setFont(Theme.FONT_REGULAR);
+        topContent.add(intro, BorderLayout.CENTER);
+        topCard.add(topContent, BorderLayout.CENTER);
         add(topCard, BorderLayout.NORTH);
 
-        // --- Panel Central: Las 3 Categorías MoProSoft ---
+        // --- Las 3 categorías ---
         JPanel categoriesPanel = new JPanel(new GridLayout(1, 3, 10, 0));
         categoriesPanel.setOpaque(false);
-
-        // 1. Alta Dirección (DIR)
-        JPanel dirCard = Theme.createCard("1. Alta Dirección (DIR)");
-        JPanel dirContent = new JPanel();
-        dirContent.setLayout(new BoxLayout(dirContent, BoxLayout.Y_AXIS));
-        dirContent.setOpaque(false);
-
-        JLabel dirDesc = new JLabel("<html><body style='width: 220px; color: #D1D5DB; font-size: 11px;'>"
-                + "<b>Proceso: Gestión de Negocios.</b> Define la estrategia y financiamiento:</body></html>");
-        dirContent.add(dirDesc);
-        dirContent.add(Box.createVerticalStrut(10));
-
-        lblDirLevel = new JLabel("• Finanzas DIR: Nivel " + gameEngine.getOrg().getDirLevel());
-        lblDirLevel.setForeground(Theme.TEXT_PRIMARY);
-        lblDirLevel.setFont(Theme.FONT_BOLD);
-        dirContent.add(lblDirLevel);
-
-        lblDirBonus = new JLabel("Retorno financiero: +0% Oro");
-        lblDirBonus.setForeground(Theme.ACCENT_AMBER);
-        lblDirBonus.setFont(Theme.FONT_REGULAR);
-        dirContent.add(lblDirBonus);
-        dirContent.add(Box.createVerticalStrut(6));
-
-        btnUpgradeDir = Theme.createStyledButton("Mejorar Finanzas DIR", Theme.ACCENT_CYAN);
-        btnUpgradeDir.addActionListener(e -> {
-            if (gameEngine.getOrg().upgradeDIR()) {
-                refreshData();
-                onStateUpdated.run();
-            } else {
-                showNoFunds();
-            }
-        });
-        dirContent.add(btnUpgradeDir);
-        dirContent.add(Box.createVerticalStrut(12));
-
-        JLabel lblFocusTitle = new JLabel("Directriz Estratégica:");
-        lblFocusTitle.setFont(Theme.FONT_BOLD);
-        lblFocusTitle.setForeground(Theme.ACCENT_CYAN);
-        dirContent.add(lblFocusTitle);
-
-        comboFocus = new JComboBox<>(new String[]{"Equilibrado", "Calidad Total", "Agilidad y Entrega", "Innovación"});
-        comboFocus.setSelectedItem(gameEngine.getOrg().getStrategicFocus());
-        comboFocus.setBackground(Theme.PANEL_SECONDARY);
-        comboFocus.setForeground(Theme.TEXT_PRIMARY);
-        comboFocus.setFont(Theme.FONT_REGULAR);
-        comboFocus.addActionListener(e -> {
-            gameEngine.getOrg().setStrategicFocus((String) comboFocus.getSelectedItem());
-            onStateUpdated.run();
-        });
-        dirContent.add(comboFocus);
-
-        JLabel lblFocusDesc = new JLabel("<html><body style='width: 220px; color: #9CA3AF; font-size: 10px; margin-top: 4px;'>"
-                + "• Calidad: +25% curación de checklists.<br>"
-                + "• Agilidad: +15% daño en ataques.<br>"
-                + "• Innovación: +5 MP por turno en combate.</body></html>");
-        dirContent.add(lblFocusDesc);
-
-        dirCard.add(dirContent, BorderLayout.CENTER);
-
-        // 2. Gerencia (GER)
-        JPanel gerCard = Theme.createCard("2. Gerencia (GER)");
-        JPanel gerContent = new JPanel();
-        gerContent.setLayout(new BoxLayout(gerContent, BoxLayout.Y_AXIS));
-        gerContent.setOpaque(false);
-
-        JLabel gerDesc = new JLabel("<html><body style='width: 220px; color: #D1D5DB; font-size: 11px;'>"
-                + "<b>Gestión de Recursos, Procesos y Proyectos:</b> Administra el capital clave:</body></html>");
-        gerContent.add(gerDesc);
-        gerContent.add(Box.createVerticalStrut(10));
-
-        // RH
-        lblRhLevel = new JLabel("• RH (Recursos Humanos): Nivel " + gameEngine.getOrg().getHumanResourcesLevel());
-        lblRhLevel.setForeground(Theme.TEXT_PRIMARY);
-        lblRhLevel.setFont(Theme.FONT_BOLD);
-        btnUpgradeRh = Theme.createStyledButton("Capacitar RH", Theme.ACCENT_CYAN);
-        btnUpgradeRh.addActionListener(e -> {
-            if (gameEngine.getOrg().upgradeRH()) {
-                refreshData();
-                onStateUpdated.run();
-            } else {
-                showNoFunds();
-            }
-        });
-        gerContent.add(lblRhLevel);
-        gerContent.add(btnUpgradeRh);
-        gerContent.add(Box.createVerticalStrut(8));
-
-        // BSI
-        lblBsiLevel = new JLabel("• BSI (Bienes/Servicios): Nivel " + gameEngine.getOrg().getInfrastructureLevel());
-        lblBsiLevel.setForeground(Theme.TEXT_PRIMARY);
-        lblBsiLevel.setFont(Theme.FONT_BOLD);
-        btnUpgradeBsi = Theme.createStyledButton("Mejorar BSI", Theme.ACCENT_AMBER);
-        btnUpgradeBsi.addActionListener(e -> {
-            if (gameEngine.getOrg().upgradeBSI()) {
-                refreshData();
-                onStateUpdated.run();
-            } else {
-                showNoFunds();
-            }
-        });
-        gerContent.add(lblBsiLevel);
-        gerContent.add(btnUpgradeBsi);
-        gerContent.add(Box.createVerticalStrut(8));
-
-        // CO
-        lblCoLevel = new JLabel("• CO (Conocimiento): Nivel " + gameEngine.getOrg().getKnowledgeBaseLevel());
-        lblCoLevel.setForeground(Theme.TEXT_PRIMARY);
-        lblCoLevel.setFont(Theme.FONT_BOLD);
-        btnUpgradeCo = Theme.createStyledButton("Expandir CO", Theme.ACCENT_PURPLE);
-        btnUpgradeCo.addActionListener(e -> {
-            if (gameEngine.getOrg().upgradeCO()) {
-                refreshData();
-                onStateUpdated.run();
-            } else {
-                showNoFunds();
-            }
-        });
-        gerContent.add(lblCoLevel);
-        gerContent.add(btnUpgradeCo);
-
-        gerCard.add(gerContent, BorderLayout.CENTER);
-
-        // 3. Operación (OPE)
-        JPanel opeCard = Theme.createCard("3. Operación (OPE)");
-        JPanel opeContent = new JPanel();
-        opeContent.setLayout(new BoxLayout(opeContent, BoxLayout.Y_AXIS));
-        opeContent.setOpaque(false);
-
-        JLabel opeDesc = new JLabel("<html><body style='width: 220px; color: #D1D5DB; font-size: 11px;'>"
-                + "<b>Desarrollo y Mantenimiento Técnico:</b> Ejecución directa de proyectos:</body></html>");
-        opeContent.add(opeDesc);
-        opeContent.add(Box.createVerticalStrut(10));
-
-        lblOpeLevel = new JLabel("• Nivel Operativo OPE: " + gameEngine.getOrg().getOpeLevel());
-        lblOpeLevel.setForeground(Theme.TEXT_PRIMARY);
-        lblOpeLevel.setFont(Theme.FONT_BOLD);
-        opeContent.add(lblOpeLevel);
-
-        lblOpeBonus = new JLabel("Efecto: +0 Daño | -0% Bugs");
-        lblOpeBonus.setForeground(Theme.ACCENT_GREEN);
-        lblOpeBonus.setFont(Theme.FONT_REGULAR);
-        opeContent.add(lblOpeBonus);
-        opeContent.add(Box.createVerticalStrut(8));
-
-        btnUpgradeOpe = Theme.createStyledButton("Mejorar Procesos OPE", Theme.ACCENT_GREEN);
-        btnUpgradeOpe.addActionListener(e -> {
-            if (gameEngine.getOrg().upgradeOPE()) {
-                refreshData();
-                onStateUpdated.run();
-            } else {
-                showNoFunds();
-            }
-        });
-        opeContent.add(btnUpgradeOpe);
-        opeContent.add(Box.createVerticalStrut(12));
-
-        JLabel lblOpeRoles = new JLabel("<html><body style='width: 220px; color: #9CA3AF; font-size: 10px;'>"
-                + "<b>Roles Involucrados:</b><br>"
-                + "• Responsable de Proceso<br>"
-                + "• Analistas de Sistemas<br>"
-                + "• Programadores<br>"
-                + "• Revisores de Código y QA</body></html>");
-        opeContent.add(lblOpeRoles);
-
-        opeCard.add(opeContent, BorderLayout.CENTER);
-
-        categoriesPanel.add(dirCard);
-        categoriesPanel.add(gerCard);
-        categoriesPanel.add(opeCard);
-
+        categoriesPanel.add(createAreaCard(Area.DIR, "1. Alta Dirección (DIR)",
+                "<b>Gestión de Negocios.</b> Define la estrategia, las metas comerciales y el presupuesto.",
+                "Rol: Grupo Directivo.", Theme.ACCENT_AMBER));
+        categoriesPanel.add(createAreaCard(Area.GER, "2. Gerencia (GER)",
+                "<b>Gestión de Procesos, Proyectos y Recursos:</b> Recursos Humanos (RH), "
+                        + "Bienes, Servicios e Infraestructura (BSI) y Conocimiento de la Organización (CO).",
+                "Rol: Gerentes de procesos y recursos.", Theme.ACCENT_CYAN));
+        categoriesPanel.add(createAreaCard(Area.OPE, "3. Operación (OPE)",
+                "<b>Administración de Proyectos Específicos y Desarrollo y Mantenimiento de Software:</b> "
+                        + "requisitos, análisis, diseño, construcción y pruebas.",
+                "Roles: Responsable de Proceso, Analistas, Programadores y Revisores.", Theme.ACCENT_GREEN));
         add(categoriesPanel, BorderLayout.CENTER);
 
         refreshData();
+    }
+
+    private JPanel createAreaCard(Area area, String title, String description, String roles, Color accent) {
+        JPanel card = Theme.createCard(title);
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+
+        JLabel desc = new JLabel("<html><body style='width: 230px; color: #D1D5DB;'>" + description + "</body></html>");
+        desc.setFont(Theme.FONT_REGULAR);
+        content.add(desc);
+        content.add(Box.createVerticalStrut(12));
+
+        JLabel level = new JLabel();
+        level.setFont(Theme.FONT_BOLD);
+        level.setForeground(Theme.TEXT_PRIMARY);
+        levelLabels.put(area, level);
+        content.add(level);
+
+        JLabel effect = new JLabel();
+        effect.setFont(Theme.FONT_REGULAR);
+        effect.setForeground(accent);
+        effectLabels.put(area, effect);
+        content.add(effect);
+        content.add(Box.createVerticalStrut(10));
+
+        JButton upgrade = Theme.createStyledButton("Mejorar", accent);
+        upgrade.putClientProperty(Theme.CUSTOM_SOUND, Boolean.TRUE);
+        upgrade.addActionListener(e -> upgrade(area));
+        upgradeButtons.put(area, upgrade);
+        content.add(upgrade);
+        content.add(Box.createVerticalStrut(12));
+
+        JLabel rolesLabel = new JLabel("<html><body style='width: 230px; color: #9CA3AF; font-size: 10px;'>" + roles + "</body></html>");
+        content.add(rolesLabel);
+
+        card.add(content, BorderLayout.CENTER);
+        return card;
+    }
+
+    private static JLabel header(Color color) {
+        JLabel label = new JLabel();
+        label.setFont(Theme.FONT_HEADER);
+        label.setForeground(color);
+        return label;
+    }
+
+    /** Texto del efecto actual y del siguiente nivel de cada categoría. */
+    private static String effectText(MoProSoftOrg org, Area area) {
+        int lvl = org.getLevel(area);
+        switch (area) {
+            case DIR:
+                return "+" + Math.round((org.getGoldMultiplier() - 1) * 100) + "% oro por proyecto"
+                        + (lvl < MoProSoftOrg.MAX_AREA_LEVEL ? "  (siguiente: +" + lvl * 15 + "%)" : "");
+            case GER:
+                return "-" + Math.round(org.getDamageReduction() * 100) + "% daño recibido"
+                        + (lvl < MoProSoftOrg.MAX_AREA_LEVEL ? "  (siguiente: -" + lvl * 8 + "%)" : "");
+            default:
+                return "+" + org.getCodingDamageBonus() + " daño y -" + Math.round(org.getDefectReduction() * 100) + "% defectos al codificar"
+                        + (lvl < MoProSoftOrg.MAX_AREA_LEVEL ? "  (siguiente: +" + lvl * 5 + " / -" + lvl * 6 + "%)" : "");
+        }
     }
 
     public void refreshData() {
         MoProSoftOrg org = gameEngine.getOrg();
         lblOrgName.setText("Empresa: " + org.getCompanyName());
         lblCapability.setText("Capacidad: " + org.getCapabilityLevelName());
-        lblBudget.setText("💰 Presupuesto Empresarial: " + org.getBudget() + " Monedas");
-        lblProcessPoints.setText("📈 Puntos de Proceso: " + org.getProcessPoints());
+        lblGold.setText("💰 Oro disponible: " + gameEngine.getHero().getGold());
 
-        // DIR
-        lblDirLevel.setText("• Finanzas DIR: Nivel " + org.getDirLevel());
-        int dirBonusPct = (int) Math.round((org.getBudgetMultiplier() - 1.0) * 100);
-        lblDirBonus.setText("Retorno financiero: +" + dirBonusPct + "% Oro en misiones");
-        btnUpgradeDir.setText("Mejorar Finanzas DIR (" + (org.getDirLevel() * 160) + " Oro)");
-
-        // GER
-        lblRhLevel.setText("• RH (Recursos Humanos): Nivel " + org.getHumanResourcesLevel());
-        lblBsiLevel.setText("• BSI (Bienes y Servicios): Nivel " + org.getInfrastructureLevel());
-        lblCoLevel.setText("• CO (Conocimiento Org.): Nivel " + org.getKnowledgeBaseLevel());
-
-        btnUpgradeRh.setText("Capacitar RH (" + (org.getHumanResourcesLevel() * 150) + " Oro)");
-        btnUpgradeBsi.setText("Mejorar BSI (" + (org.getInfrastructureLevel() * 150) + " Oro)");
-        btnUpgradeCo.setText("Expandir CO (" + (org.getKnowledgeBaseLevel() * 150) + " Oro)");
-
-        // OPE
-        lblOpeLevel.setText("• Nivel Operativo OPE: " + org.getOpeLevel());
-        int defectRedPct = (int) Math.round(org.getDefectReductionFactor() * 100);
-        lblOpeBonus.setText("Efecto: +" + org.getOperationAttackBonus() + " Daño | -" + defectRedPct + "% Defectos");
-        btnUpgradeOpe.setText("Mejorar Procesos OPE (" + (org.getOpeLevel() * 160) + " Oro)");
-
-        int nextCost = org.getCapabilityLevel() * 400 + 300;
-        int nextPoints = org.getCapabilityLevel() * 150 + 100;
-        if (org.getCapabilityLevel() < 5) {
-            btnUpgradeCapability.setText("🏅 Evaluar y Ascender Capacidad MoProSoft (Requiere " + nextCost + " Oro y " + nextPoints + " Puntos)");
-            btnUpgradeCapability.setEnabled(org.canUpgradeCapability());
-        } else {
-            btnUpgradeCapability.setText("🌟 ¡Nivel Máximo de Capacidad MoProSoft Alcanzado (Optimizado)!");
-            btnUpgradeCapability.setEnabled(false);
+        for (Area area : Area.values()) {
+            levelLabels.get(area).setText("Nivel " + org.getLevel(area) + " de " + MoProSoftOrg.MAX_AREA_LEVEL);
+            effectLabels.get(area).setText("<html><body style='width: 230px;'>" + effectText(org, area) + "</body></html>");
+            JButton b = upgradeButtons.get(area);
+            if (org.isMaxed(area)) {
+                b.setText("🌟 Nivel máximo");
+                b.setEnabled(false);
+            } else {
+                b.setText("⬆️ Mejorar (" + org.upgradeCost(area) + " Oro)");
+                b.setEnabled(true);
+            }
         }
     }
 
-    private void upgradeCapability() {
-        if (gameEngine.getOrg().upgradeCapability()) {
-            JOptionPane.showMessageDialog(this,
-                "🎉 ¡Enhorabuena! La organización ha alcanzado el " + gameEngine.getOrg().getCapabilityLevelName() + "!\n"
-                + "Se reduce el daño de los bugs y mejora la eficiencia de los proyectos.",
-                "Ascenso Organizacional", JOptionPane.INFORMATION_MESSAGE);
+    private void upgrade(Area area) {
+        int before = gameEngine.getOrg().getCapabilityLevel();
+        if (gameEngine.upgradeOrg(area)) {
+            Sound.play(Sound.Sfx.COIN);
             refreshData();
             onStateUpdated.run();
+            if (gameEngine.getOrg().getCapabilityLevel() > before) {
+                JOptionPane.showMessageDialog(this,
+                    "🎉 ¡La organización alcanzó el " + gameEngine.getOrg().getCapabilityLevelName() + " de capacidad MoProSoft!",
+                    "Ascenso Organizacional", JOptionPane.INFORMATION_MESSAGE);
+            }
         } else {
-            showNoFunds();
+            Sound.play(Sound.Sfx.ERROR);
+            JOptionPane.showMessageDialog(this,
+                "Oro insuficiente (requiere " + gameEngine.getOrg().upgradeCost(area) + ").\nCompleta proyectos para conseguir más oro.",
+                "Oro insuficiente", JOptionPane.WARNING_MESSAGE);
         }
     }
-
-    private void showNoFunds() {
-        JOptionPane.showMessageDialog(this,
-            "Fondos o puntos de proceso insuficientes.\nCompleta proyectos para generar presupuesto y puntos de proceso.",
-            "Recursos Insuficientes", JOptionPane.WARNING_MESSAGE);
-    }
 }
-
