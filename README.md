@@ -77,6 +77,8 @@ java -cp bin com.softwarerpg.Main
 
 ## 🎮 Loop de juego
 
+> 📘 **¿Primera vez jugando?** Lee el [Manual de usuario](docs/MANUAL_DE_USUARIO.md) (también en [PDF](docs/Manual_SoftwareMaturityRPG.pdf)): explica cada pantalla y cada botón con imágenes.
+
 1. En **Campaña CMMI** despliega la misión marcada como **⭐ SIGUIENTE MISIÓN** (las demás se desbloquean en orden).
 2. En **Combate RPG**:
    - **📐 Planear y Diseñar** (10 MP, una vez por proyecto): úsalo al inicio. Tus 3 siguientes ataques hacen +30% de daño y tus 3 siguientes codificaciones no inyectan defectos.
